@@ -30,9 +30,9 @@ def test_layers_import_inwards_only(layer):
 
 
 def test_every_package_is_listed_in_pyproject():
-    """src/ is installed as `nxo_ws_export` via package-dir, so packages are listed explicitly in pyproject.toml."""
+    """src/ is installed as `nxo_export` via package-dir, so packages are listed explicitly in pyproject.toml."""
     import tomllib
 
     listed = set(tomllib.loads((PKG.parent / "pyproject.toml").read_text())["tool"]["setuptools"]["packages"])
-    on_disk = {".".join(("nxo_ws_export", *p.parent.relative_to(PKG).parts)) for p in PKG.rglob("__init__.py")}
+    on_disk = {".".join(("nxo_export", *p.parent.relative_to(PKG).parts)) for p in PKG.rglob("__init__.py")}
     assert on_disk == listed

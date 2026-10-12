@@ -18,7 +18,7 @@ from .catalogue import WritersideStyleCatalogue
 from .writer import StyleWriter
 
 _W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-PRODUCER = "nxo-ws-export"
+PRODUCER = "nxo-export"
 
 
 class ReferenceDocBuilder:

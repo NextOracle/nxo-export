@@ -2,7 +2,7 @@
 .git
 .idea
 dist
-.nxo-ws-export
+.nxo-export
 Writerside
 **/__pycache__
 .pytest_cache

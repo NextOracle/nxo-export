@@ -10,11 +10,11 @@ RUN dpkg -i /tmp/pandoc.deb && rm /tmp/pandoc.deb
 
 COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
 
-WORKDIR /opt/nxo-ws-export
+WORKDIR /opt/nxo-export
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install --no-cache-dir . && nxo-ws-export --version
+RUN pip install --no-cache-dir . && nxo-export --version
 
 WORKDIR /workspace
-ENTRYPOINT ["nxo-ws-export"]
+ENTRYPOINT ["nxo-export"]
 CMD ["--help"]

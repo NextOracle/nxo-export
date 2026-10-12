@@ -1,5 +1,5 @@
 # Shared defaults for every environment. Only list what differs from the built-in defaults
-# (see `nxo-ws-export config show` for the complete effective configuration).
+# (see `nxo-export config show` for the complete effective configuration).
 config_version: 1
 
 project:

@@ -12,9 +12,9 @@ Run it with the project's virtual environment active (source .venv/bin/activate)
 import sys
 
 try:
-    from nxo_ws_export.cli import main
+    from nxo_export.cli import main
 except ImportError:
-    sys.exit("nxo_ws_export is not installed in this Python. Run: source .venv/bin/activate "
+    sys.exit("nxo_export is not installed in this Python. Run: source .venv/bin/activate "
              "(first time: python3 -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]')")
 
 if __name__ == "__main__":

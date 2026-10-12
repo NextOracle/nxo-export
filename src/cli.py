@@ -39,7 +39,7 @@ class Ctx:
 
 
 class _DefaultExport(click.Group):
-    """`export` is the default command: `nxo-ws-export -p DIR -i nsk` == `nxo-ws-export export -p DIR -i nsk`."""
+    """`export` is the default command: `nxo-export -p DIR -i nsk` == `nxo-export export -p DIR -i nsk`."""
 
     _GROUP_OPTS_WITH_VALUE = {"--env", "-e", "--config-dir", "--set"}
     _GROUP_FLAGS = {"--help", "-h", "--version"}
@@ -60,8 +60,8 @@ class _DefaultExport(click.Group):
 
 
 @click.group(cls=_DefaultExport, context_settings={"help_option_names": ["-h", "--help"]})
-@click.version_option(__version__, prog_name="nxo-ws-export")
-@click.option("--env", "-e", help="Configuration environment (config/<env>.yml). Default: $NXO_WS_EXPORT_ENV or 'local'.")
+@click.version_option(__version__, prog_name="nxo-export")
+@click.option("--env", "-e", help="Configuration environment (config/<env>.yml). Default: $NXO_EXPORT_ENV or 'local'.")
 @click.option("--config-dir", type=click.Path(path_type=Path), help="Directory with default.yml/<env>.yml/local.yml.")
 @click.option("--set", "sets", multiple=True, metavar="KEY=VALUE", help="Override any config key, e.g. render.theme=dark.")
 @click.pass_context

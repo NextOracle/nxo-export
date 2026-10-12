@@ -3,9 +3,9 @@
 Precedence (lowest -> highest):
   1. model defaults (this file)
   2. <config_dir>/default.yml
-  3. <config_dir>/<env>.yml          (env from --env or NXO_WS_EXPORT_ENV, default "local")
+  3. <config_dir>/<env>.yml          (env from --env or NXO_EXPORT_ENV, default "local")
   4. <config_dir>/local.yml          (git-ignored personal overrides; always applied last among files)
-  5. NXO_WS_EXPORT__SECTION__KEY=value environment variables
+  5. NXO_EXPORT__SECTION__KEY=value environment variables
   6. CLI flags / --set section.key=value
 String values may reference environment variables as ${VAR} or ${VAR:-default}.
 """
@@ -26,9 +26,9 @@ from .errors import ConfigError
 __all__ = ["Config", "ConfigError", "dump_config", "load_config", "parse_override", "set_path"]
 
 CONFIG_VERSION = 1
-ENV_VAR_ENV = "NXO_WS_EXPORT_ENV"
-ENV_VAR_CONFIG_DIR = "NXO_WS_EXPORT_CONFIG_DIR"
-ENV_PREFIX = "NXO_WS_EXPORT__"
+ENV_VAR_ENV = "NXO_EXPORT_ENV"
+ENV_VAR_CONFIG_DIR = "NXO_EXPORT_CONFIG_DIR"
+ENV_PREFIX = "NXO_EXPORT__"
 _INTERP = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 
 
@@ -56,7 +56,7 @@ class BuilderCfg(_Model):
     image: str = "jetbrains/writerside-builder:2026.09.0357"
     platform: str = "linux/amd64"
     timeout_s: int = 1800
-    work_dir: Path = Path("./.nxo-ws-export/work")
+    work_dir: Path = Path("./.nxo-export/work")
     work_volume: str | None = None
     """Named Docker volume mounted at work_dir. Set only when this tool itself runs inside a container
     (the builder is then a sibling container and cannot see this container's paths)."""
@@ -92,7 +92,7 @@ class RenderCfg(_Model):
     page_numbers: bool = True
     link_base_url: str | None = None
     """Published docs URL. Cross-topic links are rewritten to it; when unset they become plain text."""
-    asset_cache_dir: Path = Path("./.nxo-ws-export/cdn-cache")
+    asset_cache_dir: Path = Path("./.nxo-export/cdn-cache")
     offline: bool = False
     """Fail instead of downloading Writerside CDN assets that are not cached yet."""
     navigation_timeout_ms: int = 90_000

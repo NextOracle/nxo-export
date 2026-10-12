@@ -1,4 +1,4 @@
-# nxo-ws-export — Plan & Architecture (v3, implemented)
+# nxo-export — Plan & Architecture (v3, implemented)
 
 > Status: **implemented** (v0.1.0) and validated end-to-end against a real project (`nsk-backend/Writerside`,
 > instance `nsk`: 75 topics, 60 Mermaid diagrams, tabs/collapsibles, Greek content).
@@ -82,11 +82,11 @@ contracts are in [`../oop-refactor/design.md`](../oop-refactor/design.md).
 
 ### Configuration
 
-`defaults → config/default.yml → config/<env>.yml → config/local.yml → NXO_WS_EXPORT__A__B → CLI/--set`,
+`defaults → config/default.yml → config/<env>.yml → config/local.yml → NXO_EXPORT__A__B → CLI/--set`,
 with `${VAR}`/`${VAR:-default}` interpolation and `config_version: 1`. MVP ships only `default.yml`
 plus a git-ignored `local.yml` (from `local.example.yml`); `config/<env>.yml` + `--env` stays supported for
 when CI/release need their own settings. Commands: `export`, `build`, `instances`,
-`config show|validate`, `doctor`; run as `python app.py` (export is the default command), `nxo-ws-export`, or `nxo_ws_export.run()` from Python.
+`config show|validate`, `doctor`; run as `python app.py` (export is the default command), `nxo-export`, or `nxo_export.run()` from Python.
 
 ### Output
 

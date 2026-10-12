@@ -1,6 +1,6 @@
 """The Python entry point: one call, same layered configuration as the CLI.
 
-    from nxo_ws_export import run
+    from nxo_export import run
 
     report = run(project="/path/to/Writerside", instance="nsk", formats=("pdf", "docx"), mode="both")
     print(report.outputs)

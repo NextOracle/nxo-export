@@ -37,7 +37,7 @@ intentional output change came afterwards, in its own commit: figures no longer 
 ## 3. Package layout (as implemented)
 
 ```
-src/                            (installed as the `nxo_ws_export` package)
+src/                            (installed as the `nxo_export` package)
 ├── __init__.py                 public API (lazy): export, Config, load_config, ExportReport, __version__
 ├── cli.py                      click (thin); catches NxoError
 ├── config.py                   Pydantic models + layered loader

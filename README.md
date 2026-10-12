@@ -1,4 +1,4 @@
-# nxo-ws-export
+# nxo-export
 
 **Turn a JetBrains Writerside project into print-ready PDF and editable Word documents that look like the
 published Writerside site.**
@@ -32,7 +32,7 @@ python app.py -p ~/docs/Writerside -i nsk -f pdf -f docx -m both
 
 ## Why this exists
 
-| | Writerside PDF export | Browser *Print → PDF* | **nxo-ws-export** |
+| | Writerside PDF export | Browser *Print → PDF* | **nxo-export** |
 |---|:---:|:---:|:---:|
 | Keeps the Writerside web styles | ❌ | ✅ | ✅ |
 | Dark mode | ❌ | ✅ (one page at a time) | ✅ |
@@ -55,7 +55,7 @@ site (PDF) or translates it into Word structures (DOCX).
 
 ```bash
 # 1. Install (once)
-cd nxo-ws-export
+cd nxo-export                         # this repository
 python3 -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -e '.[dev]'
@@ -120,12 +120,12 @@ python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'databa
 | `python app.py config validate` | Check the configuration and the project without exporting |
 | `python app.py doctor` | Check Docker, the builder image, Chromium and Pandoc |
 
-`nxo-ws-export …` and `python -m nxo_ws_export …` are the same as `python app.py …` when the venv is active.
+`nxo-export …` and `python -m nxo_export …` are the same as `python app.py …` when the venv is active.
 
 ### From Python
 
 ```python
-from nxo_ws_export import run
+from nxo_export import run
 
 report = run("/path/to/Writerside", "nsk", formats=["pdf", "docx"], mode="both", theme="dark")
 print(report.outputs)    # list[Path]
@@ -152,7 +152,7 @@ WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export -i nsk -f 
 ```
 
 The image contains the CLI, Chromium and Pandoc. The builder runs as a *sibling* container through the
-mounted Docker socket, and both share the named volume `nxo-ws-export-work`.
+mounted Docker socket, and both share the named volume `nxo-export-work`.
 
 > [!WARNING]
 > Mounting the Docker socket gives the container root-equivalent access to the Docker daemon. If that is not
@@ -224,13 +224,13 @@ Settings are layered, and each layer overrides the one before:
 
 ```mermaid
 flowchart LR
-    D["built-in<br/>defaults"] --> Y["config/<br/>default.yml"] --> E["config/&lt;env&gt;.yml<br/>(only with --env)"] --> L["config/<br/>local.yml"] --> V["env vars<br/>NXO_WS_EXPORT__…"] --> CLI["CLI options<br/>--set"]
+    D["built-in<br/>defaults"] --> Y["config/<br/>default.yml"] --> E["config/&lt;env&gt;.yml<br/>(only with --env)"] --> L["config/<br/>local.yml"] --> V["env vars<br/>NXO_EXPORT__…"] --> CLI["CLI options<br/>--set"]
 ```
 
-- **Environment variables:** `NXO_WS_EXPORT__SECTION__KEY=value`, e.g. `NXO_WS_EXPORT__RENDER__THEME=dark`.
+- **Environment variables:** `NXO_EXPORT__SECTION__KEY=value`, e.g. `NXO_EXPORT__RENDER__THEME=dark`.
 - **In YAML:** values may use `${VAR}` or `${VAR:-default}`. Unknown keys are rejected, so typos fail loudly.
 - **Per-environment files are optional.** When CI or a release needs different settings, add
-  `config/ci.yml` and run with `--env ci` (or `NXO_WS_EXPORT_ENV=ci`).
+  `config/ci.yml` and run with `--env ci` (or `NXO_EXPORT_ENV=ci`).
 
 ### Most useful keys
 
@@ -292,7 +292,7 @@ breaks and "Page X of Y" footers. The DOCX is always light: Word has no dark mod
 
 | Symptom | Fix |
 |---------|-----|
-| `nxo_ws_export is not installed in this Python` | `source .venv/bin/activate` |
+| `nxo_export is not installed in this Python` | `source .venv/bin/activate` |
 | `pandoc not found on PATH` | `brew install pandoc` (DOCX only) |
 | Docker / builder errors | start Docker Desktop, then run `python app.py doctor` |
 | `project defines several instances` / `instance … not found` | `python app.py instances -p DIR`, then pass `-i <id>` |
@@ -343,7 +343,7 @@ flowchart TD
 ```
 
 ```
-src/                       installed as the `nxo_ws_export` package
+src/                       installed as the `nxo_export` package
 ├── domain/                pure values: Site/TocNode, ExportJob, PageBox, units, CSS parsing
 ├── sources/               Writerside project, Docker builder, prebuilt dir/zip
 ├── browser/               Chromium session + typed wrappers for browser/assets/*.js

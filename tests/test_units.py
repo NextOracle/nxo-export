@@ -6,17 +6,17 @@ from docx import Document
 from docx.oxml.ns import qn
 from PIL import Image
 
-from nxo_ws_export.config import DocxCfg
-from nxo_ws_export.domain.site import Site, TocNode
-from nxo_ws_export.exporters.docx.html import HtmlAssembler, LinkResolver
-from nxo_ws_export.exporters.docx.ooxml import PassContext, PostProcessor
-from nxo_ws_export.exporters.docx.ooxml import xml as ox
-from nxo_ws_export.exporters.docx.ooxml.passes import DocumentPass, FigurePass
-from nxo_ws_export.exporters.docx.ooxml.passes.base import MIN_CELL_CONTENT, content_width
-from nxo_ws_export.exporters.docx.styles import WritersideStyleCatalogue
-from nxo_ws_export.exporters.docx.styles.specs import ParagraphStyle, TableStyle
-from nxo_ws_export.exporters.docx.theme import Theme
-from nxo_ws_export.exporters.docx.topic import TopicHtml
+from nxo_export.config import DocxCfg
+from nxo_export.domain.site import Site, TocNode
+from nxo_export.exporters.docx.html import HtmlAssembler, LinkResolver
+from nxo_export.exporters.docx.ooxml import PassContext, PostProcessor
+from nxo_export.exporters.docx.ooxml import xml as ox
+from nxo_export.exporters.docx.ooxml.passes import DocumentPass, FigurePass
+from nxo_export.exporters.docx.ooxml.passes.base import MIN_CELL_CONTENT, content_width
+from nxo_export.exporters.docx.styles import WritersideStyleCatalogue
+from nxo_export.exporters.docx.styles.specs import ParagraphStyle, TableStyle
+from nxo_export.exporters.docx.theme import Theme
+from nxo_export.exporters.docx.topic import TopicHtml
 
 # ------------------------------------------------------------------ styles
 

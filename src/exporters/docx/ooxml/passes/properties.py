@@ -10,7 +10,7 @@ from docx.document import Document
 from ..context import PassContext
 from .base import DocumentPass
 
-PRODUCER = "nxo-ws-export"
+PRODUCER = "nxo-export"
 
 
 class CorePropertiesPass(DocumentPass):

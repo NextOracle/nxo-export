@@ -14,7 +14,7 @@ from docx import Document
 from PIL import Image, ImageStat
 from pypdf import PdfReader
 
-from nxo_ws_export.cli import main
+from nxo_export.cli import main
 
 pytestmark = pytest.mark.e2e
 

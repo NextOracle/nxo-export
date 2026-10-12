@@ -7,13 +7,13 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from nxo_ws_export.config import DocxCfg, PageCfg
-from nxo_ws_export.domain.page import PageBox
-from nxo_ws_export.exporters.docx.html import html_document as _html_doc
-from nxo_ws_export.exporters.docx.ooxml import PassContext, PostProcessor
-from nxo_ws_export.exporters.docx.pandoc import PandocConverter
-from nxo_ws_export.exporters.docx.styles import ReferenceDocBuilder
-from nxo_ws_export.exporters.docx.theme import Theme, highlight_theme
+from nxo_export.config import DocxCfg, PageCfg
+from nxo_export.domain.page import PageBox
+from nxo_export.exporters.docx.html import html_document as _html_doc
+from nxo_export.exporters.docx.ooxml import PassContext, PostProcessor
+from nxo_export.exporters.docx.pandoc import PandocConverter
+from nxo_export.exporters.docx.styles import ReferenceDocBuilder
+from nxo_export.exporters.docx.theme import Theme, highlight_theme
 
 needs_pandoc = pytest.mark.skipif(shutil.which("pandoc") is None, reason="pandoc not installed")
 

@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from nxo_ws_export.config import ConfigError, PageCfg, load_config
-from nxo_ws_export.domain.css import css_color_to_hex, first_font
-from nxo_ws_export.domain.page import PageBox, content_box_px, length_px, page_size_px
-from nxo_ws_export.errors import ExportError
-from nxo_ws_export.exporters.docx.html import shift_headings
-from nxo_ws_export.sources.builder import parse_report, source_fingerprint
-from nxo_ws_export.sources.project import ProjectError, load_project
-from nxo_ws_export.sources.site_loader import load_site
+from nxo_export.config import ConfigError, PageCfg, load_config
+from nxo_export.domain.css import css_color_to_hex, first_font
+from nxo_export.domain.page import PageBox, content_box_px, length_px, page_size_px
+from nxo_export.errors import ExportError
+from nxo_export.exporters.docx.html import shift_headings
+from nxo_export.sources.builder import parse_report, source_fingerprint
+from nxo_export.sources.project import ProjectError, load_project
+from nxo_export.sources.site_loader import load_site
 
 # ------------------------------------------------------------------ config
 
@@ -27,7 +27,7 @@ def test_config_layers_precedence(tmp_path):
     write(d / "default.yml", "render: {theme: light, toc: {depth: 2}}\noutput: {formats: [pdf]}\n")
     write(d / "ci.yml", "render: {theme: dark}\noutput: {strict: true}\n")
     write(d / "local.yml", "render: {toc: {depth: 4}}\n")
-    env = {"NXO_WS_EXPORT__OUTPUT__MODE": "both"}
+    env = {"NXO_EXPORT__OUTPUT__MODE": "both"}
     cfg, used = load_config("ci", d, {"output": {"formats": ["docx"]}}, environ=env)
     assert cfg.env == "ci"
     assert cfg.render.theme == "dark"          # ci.yml over default.yml
@@ -223,7 +223,7 @@ def test_local_example_config_is_valid(tmp_path):
 def test_export_is_the_default_command(args):
     from click.testing import CliRunner
 
-    from nxo_ws_export.cli import main
+    from nxo_export.cli import main
 
     r = CliRunner().invoke(main, args)
     assert r.exit_code == 2 and "error:" in r.output and "No such command" not in r.output
@@ -232,6 +232,6 @@ def test_export_is_the_default_command(args):
 def test_named_commands_still_route():
     from click.testing import CliRunner
 
-    from nxo_ws_export.cli import main
+    from nxo_export.cli import main
 
     assert "List the instances" in CliRunner().invoke(main, ["instances", "-h"]).output

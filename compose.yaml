@@ -8,7 +8,7 @@
 services:
   export:
     build: .
-    image: nxo-ws-export:local
+    image: nxo-export:local
     working_dir: /workspace
     volumes:
       - ./:/workspace                                   # config/ and dist/
@@ -16,12 +16,12 @@ services:
       - work:/work
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      NXO_WS_EXPORT_ENV: ${NXO_WS_EXPORT_ENV:-local}
-      NXO_WS_EXPORT__PROJECT__PATH: /project
-      NXO_WS_EXPORT__BUILDER__WORK_DIR: /work      # must be the mount point of the volume
-      NXO_WS_EXPORT__BUILDER__WORK_VOLUME: nxo-ws-export-work
-      NXO_WS_EXPORT__RENDER__ASSET_CACHE_DIR: /work/cdn-cache
+      NXO_EXPORT_ENV: ${NXO_EXPORT_ENV:-local}
+      NXO_EXPORT__PROJECT__PATH: /project
+      NXO_EXPORT__BUILDER__WORK_DIR: /work      # must be the mount point of the volume
+      NXO_EXPORT__BUILDER__WORK_VOLUME: nxo-export-work
+      NXO_EXPORT__RENDER__ASSET_CACHE_DIR: /work/cdn-cache
 
 volumes:
   work:
-    name: nxo-ws-export-work
+    name: nxo-export-work

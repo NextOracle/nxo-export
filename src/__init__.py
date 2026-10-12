@@ -1,6 +1,6 @@
 """Export a JetBrains Writerside instance to PDF (light/dark) and editable DOCX.
 
-    from nxo_ws_export import run
+    from nxo_export import run
     run(project="/path/to/Writerside", instance="nsk", formats=("pdf",), theme="dark")
 """
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .config import Config, load_config
 
 
-def __getattr__(name: str) -> Any:  # lazy: `nxo_ws_export.__version__` must not import Playwright/pydantic
+def __getattr__(name: str) -> Any:  # lazy: `nxo_export.__version__` must not import Playwright/pydantic
     if name == "run":
         from .app.api import run
         return run

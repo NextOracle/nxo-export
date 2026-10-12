@@ -24,7 +24,7 @@ class ExportService:
 
         out = self.cfg.output
         warnings = self._preflight()
-        scratch = Path(tempfile.mkdtemp(prefix="nxo-ws-export-"))
+        scratch = Path(tempfile.mkdtemp(prefix="nxo-export-"))
         try:
             acquired = provider.acquire(scratch)
             warnings += acquired.warnings

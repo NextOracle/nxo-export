@@ -15,7 +15,7 @@ from .footer import PageNumberStamper
 from .pages import FRONT_CSS, CoverPage, TocPage, first_page
 from .printer import PagePrinter, TopicPdf, page_count
 
-PRODUCER = "nxo-ws-export"
+PRODUCER = "nxo-export"
 TOC_CONVERGE_ROUNDS = 3
 
 
