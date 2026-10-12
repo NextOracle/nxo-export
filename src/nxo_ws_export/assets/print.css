@@ -1,0 +1,47 @@
+/* Static-document overrides on top of the Writerside theme (app.css). Applied for both light and dark. */
+.nxo-print .app__header,
+.nxo-print .app__sidebar,
+.nxo-print .app__virtual-toc-aside,
+.nxo-print .app__footer,
+.nxo-print .collapse__button,
+.nxo-print .table__fader,
+.nxo-print .table__scroll-arrow,
+.nxo-print [class*="feedback"],
+.nxo-print [class*="copy-button"],
+.nxo-print [class*="code-block__copy"],
+.nxo-print [data-test="scroll-to-top"] { display: none !important; }
+
+.nxo-print, .nxo-print body, .nxo-print .app, .nxo-print .layout,
+.nxo-print .app__content, .nxo-print .app__content-scroller, .nxo-print .app__article-column,
+.nxo-print .layout--scroll-container, .nxo-print .layout--scroll-element {
+  height: auto !important; min-height: 0 !important; max-height: none !important;
+  overflow: visible !important; position: static !important;
+}
+.nxo-print .app__article-column, .nxo-print .app__article { max-width: none !important; width: auto !important;
+  margin: 0 !important; padding: 0 !important; }
+.nxo-print .app__breadcrumbs { margin-top: 0 !important; }
+.nxo-print .article { padding: 0 !important; }
+
+/* Static versions of interactive widgets */
+.nxo-print .collapse__body { display: block !important; height: auto !important; visibility: visible !important; }
+.nxo-print .collapse__title { padding-left: 0 !important; }
+.nxo-tabs__title { font-weight: 600; margin: 1.1em 0 .45em; padding-bottom: .2em;
+  border-bottom: 2px solid var(--wh-color-primary, #307fff); }
+.nxo-tabs__panel { display: block !important; height: auto !important; }
+.nxo-unlinked { color: inherit !important; text-decoration: none !important; cursor: auto; }
+
+/* Content must never be clipped on paper */
+.nxo-print .table__wrapper, .nxo-print .table__content { overflow: visible !important; }
+/* Tables never scroll on paper: they take the article width and wrap; fit.js scales/breaks the rest */
+.nxo-print .table, .nxo-print .table__wrapper { max-width: 100% !important; }
+.nxo-print table.table__content { width: 100% !important; max-width: 100% !important; }
+.nxo-print table.nxo-table-break code { overflow-wrap: anywhere !important; word-break: normal !important;
+  white-space: normal !important; }
+.nxo-print pre, .nxo-print pre code { white-space: pre-wrap !important; overflow-wrap: anywhere; }
+.nxo-print svg, .nxo-print img { max-width: 100% !important; height: auto; }
+
+/* Pagination */
+.nxo-print h1, .nxo-print h2, .nxo-print h3, .nxo-print h4,
+.nxo-print .title, .nxo-print .collapse__title, .nxo-tabs__title { break-after: avoid-page; }
+.nxo-print figure, .nxo-print img, .nxo-print svg, .nxo-print tr,
+.nxo-print .code-block, .nxo-print aside.prompt { break-inside: avoid-page; }

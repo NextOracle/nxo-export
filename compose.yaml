@@ -1,0 +1,27 @@
+# Fully containerised run:
+#   WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export export -i nsk -f pdf -t dark
+#
+# The exporter starts the official Writerside builder as a *sibling* container through the Docker socket.
+# Both containers share the named volume below, so no host paths need to be translated.
+# Security note: mounting the Docker socket grants root-equivalent access to the host's Docker daemon.
+# If that is not acceptable, run the builder yourself and use `export --site <webHelp*.zip>` (see README).
+services:
+  export:
+    build: .
+    image: nxo-ws-export:local
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace                                   # config/ and dist/
+      - ${WRITERSIDE_PROJECT:-./Writerside}:/project:ro  # never modified; the builder works on a copy
+      - work:/work
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      NXO_WS_EXPORT_ENV: ${NXO_WS_EXPORT_ENV:-dev}
+      NXO_WS_EXPORT__PROJECT__PATH: /project
+      NXO_WS_EXPORT__BUILDER__WORK_DIR: /work      # must be the mount point of the volume
+      NXO_WS_EXPORT__BUILDER__WORK_VOLUME: nxo-ws-export-work
+      NXO_WS_EXPORT__RENDER__ASSET_CACHE_DIR: /work/cdn-cache
+
+volumes:
+  work:
+    name: nxo-ws-export-work

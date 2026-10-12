@@ -1,0 +1,9 @@
+.venv
+.git
+.idea
+dist
+.nxo-ws-export
+Writerside
+**/__pycache__
+.pytest_cache
+.ruff_cache

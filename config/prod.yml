@@ -1,0 +1,15 @@
+# Release / publication. Fresh build, all formats, links point to the published site.
+builder:
+  reuse_cache: false
+
+render:
+  link_base_url: ${DOCS_BASE_URL:-}
+  cover:
+    subtitle: ${RELEASE_LABEL:-}
+  offline: false
+
+output:
+  dir: ./dist/release
+  formats: [pdf, docx]
+  mode: both
+  strict: false

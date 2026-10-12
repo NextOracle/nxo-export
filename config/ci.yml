@@ -1,0 +1,11 @@
+# CI pipeline. Fresh build every time, every artifact, fail on content inspection errors.
+builder:
+  reuse_cache: false
+  fail_on_inspection_errors: true
+  timeout_s: 2400
+
+output:
+  dir: ${CI_ARTIFACTS_DIR:-./dist}
+  formats: [pdf, docx]
+  mode: both
+  strict: true

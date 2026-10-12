@@ -1,0 +1,7 @@
+# Developer workstation. Fast feedback, cached builds, tolerant of content warnings.
+builder:
+  reuse_cache: true
+
+output:
+  formats: [pdf]
+  mode: combined

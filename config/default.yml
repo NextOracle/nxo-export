@@ -1,0 +1,47 @@
+# Shared defaults for every environment. Only list what differs from the built-in defaults
+# (see `nxo-ws-export config show` for the complete effective configuration).
+config_version: 1
+
+project:
+  path: ${WRITERSIDE_PROJECT:-./Writerside}
+  instance: null            # required when writerside.cfg defines several instances
+
+builder:
+  image: jetbrains/writerside-builder:2026.09.0357   # pinned: the renderer's DOM selectors are validated against it
+  platform: linux/amd64     # the image is amd64-only (emulated on Apple Silicon: slower, but works)
+  timeout_s: 1800
+  fail_on_inspection_errors: false
+
+render:
+  theme: light              # light | dark  (PDF only; DOCX is always light)
+  page:
+    size: A4
+    margin_top: 16mm
+    margin_bottom: 18mm
+    margin_x: 16mm
+  toc:
+    enabled: true
+    title: Contents
+    depth: 3
+  cover:
+    enabled: true
+  page_numbers: true
+  table_min_scale: 0.75      # wide tables shrink to the page width down to this, then long words wrap
+  link_base_url: null       # e.g. https://docs.example.com/nsk/ to keep cross-topic links clickable
+
+docx:                       # always light: Word has no dark mode
+  reference_doc: null       # null = Word styles derived from the rendered Writerside light theme
+  image_scale: 2            # pixel density of rasterised Mermaid/SVG diagrams
+  font: null                # null = theme font (JetBrains Sans)
+  code_font: null           # null = theme code font (JetBrains Mono)
+  font_fallback: Arial      # used by Word when the theme font is not installed
+  code_font_fallback: Consolas
+  emoji_font: Segoe UI Emoji
+  highlight: true           # code colours taken from the rendered Prism tokens
+  toc: true
+
+output:
+  dir: ./dist
+  formats: [pdf]
+  mode: combined            # combined | per-topic | both
+  strict: false

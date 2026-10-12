@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nxo-ws-export"
+version = "0.1.0"
+description = "Export JetBrains Writerside projects to PDF (light/dark) and DOCX using the official Writerside builder as the renderer."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "click>=8.1",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "playwright==1.63.0",
+  "pypdf>=5.0",
+  "python-docx>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+nxo-ws-export = "nxo_ws_export.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nxo_ws_export"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "e2e: needs Docker + the Writerside builder image + Chromium (slow)",
+  "browser: needs Playwright Chromium",
+]
+addopts = "-m 'not e2e'"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "PLW1510"]
+ignore = ["E501"]
