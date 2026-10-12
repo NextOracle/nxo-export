@@ -8,18 +8,12 @@ import pytest
 from PIL import Image
 
 from nxo_ws_export.config import DocxCfg, PageCfg
-from nxo_ws_export.render.docx import (
-    PostCtx,
-    Theme,
-    _html_doc,
-    build_reference_docx,
-    run_pandoc,
-    text_height_twips,
-    text_width_twips,
-)
-from nxo_ws_export.render.docx.postprocess import postprocess
-from nxo_ws_export.render.docx.theme import highlight_theme
-from nxo_ws_export.site import Site
+from nxo_ws_export.domain.page import PageBox
+from nxo_ws_export.exporters.docx.html import html_document as _html_doc
+from nxo_ws_export.exporters.docx.ooxml import PassContext, PostProcessor
+from nxo_ws_export.exporters.docx.pandoc import PandocConverter
+from nxo_ws_export.exporters.docx.styles import ReferenceDocBuilder
+from nxo_ws_export.exporters.docx.theme import Theme, highlight_theme
 
 needs_pandoc = pytest.mark.skipif(shutil.which("pandoc") is None, reason="pandoc not installed")
 
@@ -60,12 +54,13 @@ def test_docx_structure(tmp_path: Path):
     html = tmp_path / "t.html"
     html.write_text(_html_doc(None, body), encoding="utf-8")
     theme, page = Theme(), PageCfg()
-    ref = build_reference_docx(theme, DocxCfg(), page, tmp_path / "ref.docx")
+    pandoc, box = PandocConverter(), PageBox.from_cfg(page)
+    ref = ReferenceDocBuilder(theme, DocxCfg(), page).build(pandoc.default_reference_docx(), tmp_path / "ref.docx")
     out = tmp_path / "t.docx"
-    run_pandoc(html, out, Site(tmp_path, [], "P", {}), ref, None, {}, None, print)
-    ctx = PostCtx(theme=theme, text_width=text_width_twips(page), text_height=text_height_twips(page),
-                  table_scales={"nxo-t-0-0": 1.0})
-    stats = postprocess(out, ctx)
+    pandoc.convert(html, out, resource_path=tmp_path, reference=ref, highlight=None)
+    ctx = PassContext(theme=theme, text_width=box.text_width_twips, text_height=box.text_height_twips,
+                      table_scales={"nxo-t-0-0": 1.0})
+    stats = PostProcessor().run(out, ctx)
     assert stats["tables"] == 1 and stats["callouts"] == 1 and stats["figures"] == 1
     assert stats["text_diagrams"] == 1
 

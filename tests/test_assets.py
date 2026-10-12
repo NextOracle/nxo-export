@@ -2,7 +2,7 @@
 
 import pytest
 
-from nxo_ws_export.render.browser import asset
+from nxo_ws_export.browser.assets import read_asset as asset
 
 pytestmark = pytest.mark.browser
 

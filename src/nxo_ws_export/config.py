@@ -21,15 +21,15 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from .errors import ConfigError
+
+__all__ = ["Config", "ConfigError", "dump_config", "load_config", "parse_override", "set_path"]
+
 CONFIG_VERSION = 1
 ENV_VAR_ENV = "NXO_WS_EXPORT_ENV"
 ENV_VAR_CONFIG_DIR = "NXO_WS_EXPORT_CONFIG_DIR"
 ENV_PREFIX = "NXO_WS_EXPORT__"
 _INTERP = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
-
-
-class ConfigError(Exception):
-    pass
 
 
 class _Model(BaseModel):

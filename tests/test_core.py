@@ -4,13 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from nxo_ws_export.builder import parse_report, source_fingerprint
 from nxo_ws_export.config import ConfigError, PageCfg, load_config
-from nxo_ws_export.exporter import _filter_topics, _subset_site, shift_headings
-from nxo_ws_export.geometry import content_box_px, length_px, page_size_px
-from nxo_ws_export.project import ProjectError, load_project
-from nxo_ws_export.render.docx import css_color_to_hex, first_font
-from nxo_ws_export.site import load_site
+from nxo_ws_export.domain.css import css_color_to_hex, first_font
+from nxo_ws_export.domain.page import PageBox, content_box_px, length_px, page_size_px
+from nxo_ws_export.errors import ExportError
+from nxo_ws_export.exporters.docx.html import shift_headings
+from nxo_ws_export.sources.builder import parse_report, source_fingerprint
+from nxo_ws_export.sources.project import ProjectError, load_project
+from nxo_ws_export.sources.site_loader import load_site
 
 # ------------------------------------------------------------------ config
 
@@ -160,13 +161,13 @@ def test_site_toc_order(tmp_path):
 
 def test_topic_filter_and_subset(tmp_path):
     site = load_site(make_site(tmp_path))
-    sel = _filter_topics(site, ("topic-c", "d"))
+    sel = site.select(("topic-c", "d"))
     assert [t.id for t in sel] == ["c", "d"]
-    sub = _subset_site(site, {t.url for t in sel})
+    sub = site.subset({t.url for t in sel})
     assert [t.title for t in sub.topics()] == ["Topic C", "Topic D"]
     assert sub.toc[0].title == "Section" and sub.toc[0].children[0].url is None  # B kept as a section only
-    with pytest.raises(Exception, match="no topic"):
-        _filter_topics(site, ("nothing*",))
+    with pytest.raises(ExportError, match="no topic"):
+        site.select(("nothing*",))
 
 
 def test_shift_headings():
@@ -186,6 +187,10 @@ def test_geometry():
     assert (w, h) == (718, 1046)
     with pytest.raises(ValueError):
         length_px("10em")
+    box = PageBox.from_cfg(PageCfg(size="A4", margin_top="10mm", margin_bottom="10mm", margin_x="10mm"))
+    assert box.content_px == (718, 1046) and not box.landscape
+    with pytest.raises(ValueError):
+        PageBox.from_cfg(PageCfg(size="A6", margin_top="60mm", margin_bottom="60mm", margin_x="10mm"))
 
 
 @pytest.mark.parametrize("css,expected", [

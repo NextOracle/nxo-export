@@ -10,13 +10,13 @@ from pathlib import Path
 import click
 
 from . import __version__
-from .builder import Builder, BuildError
-from .config import ConfigError, dump_config, load_config, parse_override, set_path
-from .exporter import ExportError, export
-from .project import ProjectError, load_project
-from .site import SiteError
+from .app.service import export
+from .config import dump_config, load_config, parse_override, set_path
+from .errors import BuildError, NxoError
+from .sources.builder import DockerSiteBuilder
+from .sources.project import load_project
 
-KNOWN_ERRORS = (ConfigError, ProjectError, BuildError, SiteError, ExportError)
+KNOWN_ERRORS = (NxoError,)
 
 
 def _log(msg: str) -> None:
@@ -96,7 +96,7 @@ def build(obj: Ctx, project, instance):
     def go():
         cfg, _ = obj.load({"project.path": str(project) if project else None, "project.instance": instance})
         prj = load_project(cfg.project.path)
-        res = Builder(cfg.builder, _log).build(prj, prj.instance(cfg.project.instance))
+        res = DockerSiteBuilder(cfg.builder, _log).build(prj, prj.instance(cfg.project.instance))
         _log(f"exit={res.exit_code} cached={res.cached} errors={len(res.errors)} warnings={len(res.warnings)} "
              f"time={res.duration_s:.0f}s")
         click.echo(str(res.site_dir))
@@ -160,7 +160,7 @@ def doctor(obj: Ctx):
         click.echo(f"[{'ok' if good else 'missing'}] {what}{' - ' + detail if detail else ''}")
 
     try:
-        Builder(cfg.builder, _log).check()
+        DockerSiteBuilder(cfg.builder, _log).check()
         line(True, "docker daemon")
         img = subprocess.run([cfg.builder.docker_bin, "image", "inspect", cfg.builder.image], check=False, capture_output=True)
         line(img.returncode == 0, f"builder image {cfg.builder.image}", "" if img.returncode == 0 else "pulled on first build")
