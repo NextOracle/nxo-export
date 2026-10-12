@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "nxo-ws-export"
@@ -23,8 +23,29 @@ dev = ["pytest>=8.0", "ruff>=0.6"]
 [project.scripts]
 nxo-ws-export = "nxo_ws_export.cli:main"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/nxo_ws_export"]
+[tool.setuptools]
+# Sources live directly in src/ and are installed as the `nxo_ws_export` package.
+package-dir = { "nxo_ws_export" = "src" }
+# Keep in sync with src/ (tests/test_architecture.py checks it).
+packages = [
+  "nxo_ws_export",
+  "nxo_ws_export.app",
+  "nxo_ws_export.browser",
+  "nxo_ws_export.browser.assets",
+  "nxo_ws_export.domain",
+  "nxo_ws_export.exporters",
+  "nxo_ws_export.exporters.docx",
+  "nxo_ws_export.exporters.docx.html",
+  "nxo_ws_export.exporters.docx.ooxml",
+  "nxo_ws_export.exporters.docx.ooxml.passes",
+  "nxo_ws_export.exporters.docx.styles",
+  "nxo_ws_export.exporters.docx.theme",
+  "nxo_ws_export.exporters.pdf",
+  "nxo_ws_export.sources",
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.js", "*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

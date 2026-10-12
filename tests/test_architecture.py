@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-PKG = Path(__file__).parents[1] / "src" / "nxo_ws_export"
+PKG = Path(__file__).parents[1] / "src"
 LAYERS = ["domain", "sources", "browser", "exporters", "app"]
 """Inner first; a layer may import any layer at or before its own position."""
 
@@ -27,3 +27,12 @@ def test_layers_import_inwards_only(layer):
     outer = set(LAYERS) - allowed
     bad = {f"{p.relative_to(PKG)} -> {m}" for p in (PKG / layer).rglob("*.py") for m in _imports(p) & outer}
     assert not bad, bad
+
+
+def test_every_package_is_listed_in_pyproject():
+    """src/ is installed as `nxo_ws_export` via package-dir, so packages are listed explicitly in pyproject.toml."""
+    import tomllib
+
+    listed = set(tomllib.loads((PKG.parent / "pyproject.toml").read_text())["tool"]["setuptools"]["packages"])
+    on_disk = {".".join(("nxo_ws_export", *p.parent.relative_to(PKG).parts)) for p in PKG.rglob("__init__.py")}
+    assert on_disk == listed
