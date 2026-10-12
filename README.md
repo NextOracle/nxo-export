@@ -10,7 +10,7 @@ published Writerside site.**
 - 📚 **One combined document** with cover, table of contents and bookmarks, **and/or one file per topic**.
 
 ```bash
-python app.py -p ~/docs/Writerside -i nsk -f pdf -f docx -m both
+python app.py -p ~/docs/Writerside -i docs -f pdf -f docx -m both
 ```
 
 ---
@@ -66,10 +66,10 @@ python app.py doctor                 # checks Docker, the builder image, Chromiu
 python app.py instances -p /path/to/Writerside
 
 # 3. Export
-python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both
+python app.py -p /path/to/Writerside -i docs -f pdf -f docx -m both
 ```
 
-The files are in `dist/nsk/`.
+The files are in `dist/docs/`.
 
 > [!NOTE]
 > The first run pulls the builder image (~1.7 GB) and builds the site, which takes a few minutes. On Apple
@@ -89,11 +89,11 @@ You do **not** pass a `.tree` file. Pass the Writerside folder (the one with `wr
 **instance id**, which is the id of the tree. `export` is the default command, so you can leave it out.
 
 ```bash
-python app.py -p /path/to/Writerside -i nsk                          # combined light PDF (defaults)
-python app.py -p /path/to/Writerside -i nsk -f pdf -t dark           # combined dark PDF
-python app.py -p /path/to/Writerside -i nsk -f docx                  # combined DOCX
-python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both   # everything, combined + per topic
-python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'   # some topics only
+python app.py -p /path/to/Writerside -i docs                          # combined light PDF (defaults)
+python app.py -p /path/to/Writerside -i docs -f pdf -t dark           # combined dark PDF
+python app.py -p /path/to/Writerside -i docs -f docx                  # combined DOCX
+python app.py -p /path/to/Writerside -i docs -f pdf -f docx -m both   # everything, combined + per topic
+python app.py -p /path/to/Writerside -i docs -f docx -m per-topic --topic 'database-*'   # some topics only
 ```
 
 | Option | Values | Default |
@@ -127,7 +127,7 @@ python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'databa
 ```python
 from nxo_export import run
 
-report = run("/path/to/Writerside", "nsk", formats=["pdf", "docx"], mode="both", theme="dark")
+report = run("/path/to/Writerside", "docs", formats=["pdf", "docx"], mode="both", theme="dark")
 print(report.outputs)    # list[Path]
 print(report.warnings)   # list[str]
 ```
@@ -142,13 +142,13 @@ If you already have the web-help output, from the Writerside IDE (*Export → We
 `JetBrains/writerside-github-action` in CI, skip the builder:
 
 ```bash
-python app.py --site webHelpNSK2-all.zip -f pdf -f docx -m both
+python app.py --site webHelpDOCS2-all.zip -f pdf -f docx -m both
 ```
 
 ### Fully in Docker
 
 ```bash
-WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export -i nsk -f pdf -t dark
+WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export -i docs -f pdf -t dark
 ```
 
 The image contains the CLI, Chromium and Pandoc. The builder runs as a *sibling* container through the
@@ -322,7 +322,7 @@ breaks and "Page X of Y" footers. The DOCX is always light: Word has no dark mod
 ```bash
 source .venv/bin/activate
 pytest -q                                                              # unit tests (seconds)
-WS_E2E_PROJECT=/path/to/Writerside WS_E2E_INSTANCE=nsk pytest -m e2e   # real builder + browser + pandoc
+WS_E2E_PROJECT=/path/to/Writerside WS_E2E_INSTANCE=docs pytest -m e2e   # real builder + browser + pandoc
 ruff check src tests
 ```
 
