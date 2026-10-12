@@ -1,5 +1,5 @@
 # Fully containerised run:
-#   WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export export -i nsk -f pdf -t dark
+#   WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export -i nsk -f pdf -t dark
 #
 # The exporter starts the official Writerside builder as a *sibling* container through the Docker socket.
 # Both containers share the named volume below, so no host paths need to be translated.

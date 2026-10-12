@@ -1,74 +1,100 @@
 # nxo-ws-export
 
-Export a JetBrains **Writerside** project to **PDF** (light or dark, the default Writerside theme as in the
-browser) and **DOCX**: one combined document with a table of contents, and/or one file per topic.
+**Turn a JetBrains Writerside project into print-ready PDF and editable Word documents that look like the
+published Writerside site.**
 
-It does **not** re-implement Writerside. The official Writerside builder renders the site, and the exporter
-prints that site:
+- 📄 **PDF:** light or dark, printed from the real Writerside site with its own styles, Mermaid diagrams
+  included.
+- 📝 **DOCX:** something Writerside cannot do. A real Word document that business analysts can edit, built on
+  named Word styles derived from the Writerside theme.
+- 📚 **One combined document** with cover, table of contents and bookmarks, **and/or one file per topic**.
 
-```
-Writerside project ──► writerside-builder (Docker, pinned) ──► web-help site (HTML, CSS, Mermaid as SVG)
-                                                                   │
-                         Playwright Chromium (screen media, light|dark) ── flatten tabs/collapsibles,
-                                                                   │      hide navigation, fit diagrams
-                                     ┌─────────────────────────────┴───────────────────┐
-                                PDF: page.pdf + footer stamp,             DOCX: normalised HTML + diagrams as PNG
-                                cover, TOC, bookmarks (pypdf)             ──► Pandoc + reference.docx derived
-                                                                          from the rendered light theme
+```bash
+python app.py -p ~/docs/Writerside -i nsk -f pdf -f docx -m both
 ```
 
-What you get:
-- Identical styling to the published site (fonts, code blocks, callouts, tables, Mermaid diagrams) in PDF.
-  Dark mode is the real Writerside dark theme, including dark Mermaid diagrams.
-- Interactive elements flattened: every collapsible is expanded, and every tab is rendered one after another
-  with its title. Horizontally scrolling tables always fit the page width: they shrink, down to
-  `render.table_min_scale`, then long words and identifiers wrap.
-- Combined PDF: cover page, a TOC with page numbers built from the Writerside tree, hierarchical bookmarks,
-  and continuous "PAGE X OF Y" footers.
-- DOCX, made for business analysts to **edit**. Everything is a real, named Word style derived from the
-  rendered Writerside light theme, so the document stays consistent while you edit it:
-  - Headings 1–6, with Writerside's vertical rhythm.
-  - Real Word tables (`Table` style): grey grid, shaded header row repeated on every page, column widths
-    measured from the site, wide tables scaled to fit the page.
-  - Code blocks highlighted with the site's own Prism colours (`Source Code`).
-  - ASCII/box-drawing diagrams (a code block without a language that uses `┌ ─ │ ├ └` …) become
-    `Text Diagram` lines instead: monospace, exact spacing, no code box or highlighting, kept on one page,
-    shrunk to fit the width. DOCX only; PDF keeps the site look. Give the block a language to keep it as code.
-  - Callouts as shaded boxes (`Callout Note/Tip/Warning`), `Tab Title`, `Figure`.
-  - Hyperlinks styled like the site; emoji in their own `Emoji` style.
-  - Mermaid and other SVG diagrams as sharp, light-theme PNGs, never larger than the page.
-  - A pre-filled, clickable TOC, "Page X of Y" footers, and working in-document and cross-topic links.
-  - DOCX is always light. Dark mode is ignored for DOCX, with a warning.
+---
 
-## Setup (once)
+## Contents
 
-Requirements: Python ≥ 3.11, Docker (runs the Writerside builder), and Pandoc ≥ 3 (DOCX only;
+- [Why this exists](#why-this-exists)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Configuration](#configuration)
+- [Output](#output)
+- [The Word document](#the-word-document)
+- [Troubleshooting](#troubleshooting)
+- [Limitations](#limitations)
+- [Development](#development)
+
+---
+
+## Why this exists
+
+| | Writerside PDF export | Browser *Print → PDF* | **nxo-ws-export** |
+|---|:---:|:---:|:---:|
+| Keeps the Writerside web styles | ❌ | ✅ | ✅ |
+| Dark mode | ❌ | ✅ (one page at a time) | ✅ |
+| Whole instance, TOC with page numbers, bookmarks | ✅ | ❌ | ✅ |
+| Tabs and collapsibles printed open | – | ❌ | ✅ |
+| Wide tables fit the page (no scrollbar cut-off) | – | ❌ | ✅ |
+| **Editable DOCX** | ❌ | ❌ | ✅ |
+| Scriptable (CI, Docker) | ✅ | ❌ | ✅ |
+
+The tool does **not** re-implement Writerside. The official Writerside builder renders the site, so includes,
+`%variables%`, filters, snippets and Mermaid are resolved exactly as published. The exporter then prints that
+site (PDF) or translates it into Word structures (DOCX).
+
+---
+
+## Quick start
+
+**You need:** Python ≥ 3.11, Docker (runs the Writerside builder), and Pandoc ≥ 3 (DOCX only:
 `brew install pandoc`).
 
 ```bash
+# 1. Install (once)
 cd nxo-ws-export
 python3 -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -e '.[dev]'
 playwright install chromium
 python app.py doctor                 # checks Docker, the builder image, Chromium and Pandoc
+
+# 2. Find your instance (tree) id
+python app.py instances -p /path/to/Writerside
+
+# 3. Export
+python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both
 ```
 
-## Run an export
+The files are in `dist/nsk/`.
 
-Activate the venv in every new terminal (`source .venv/bin/activate`), then run `app.py`.
+> [!NOTE]
+> The first run pulls the builder image (~1.7 GB) and builds the site, which takes a few minutes. On Apple
+> Silicon the amd64 image runs emulated, so it is slower. Later runs reuse the build until your sources
+> change. Your Writerside folder is never modified, because the builder works on a copy.
 
-You do **not** pass a `.tree` file. Pass the Writerside folder (the one containing `writerside.cfg`) and
-the **instance id**, which is the id of the tree:
+> [!TIP]
+> Open a new terminal? Run `source .venv/bin/activate` first. If you forget, `app.py` tells you.
+
+---
+
+## Usage
+
+### Exporting
+
+You do **not** pass a `.tree` file. Pass the Writerside folder (the one with `writerside.cfg`) and the
+**instance id**, which is the id of the tree. `export` is the default command, so you can leave it out.
 
 ```bash
-python app.py instances -p /path/to/Writerside                       # which instances (trees) exist?
+python app.py -p /path/to/Writerside -i nsk                          # combined light PDF (defaults)
 python app.py -p /path/to/Writerside -i nsk -f pdf -t dark           # combined dark PDF
-python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both   # everything
+python app.py -p /path/to/Writerside -i nsk -f docx                  # combined DOCX
+python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both   # everything, combined + per topic
+python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'   # some topics only
 ```
-
-`export` is the default command, so `python app.py -p …` is the same as `python app.py export -p …`.
-With the venv active, `nxo-ws-export -p …` and `python -m nxo_ws_export -p …` work too.
 
 | Option | Values | Default |
 |--------|--------|---------|
@@ -76,25 +102,25 @@ With the venv active, `nxo-ws-export -p …` and `python -m nxo_ws_export -p …
 | `-i, --instance` | instance (tree) id | `project.instance` |
 | `-f, --format` | `pdf`, `docx` (repeatable) | `pdf` |
 | `-m, --mode` | `combined`, `per-topic`, `both` | `combined` |
-| `-t, --theme` | `light`, `dark` (PDF only) | `light` |
+| `-t, --theme` | `light`, `dark` (PDF only; DOCX is always light) | `light` |
 | `--topic` | topic id, file slug or glob (repeatable) | all topics |
 | `-o, --out` | output folder | `dist/` |
-| `--site` | an already built site (folder or `webHelp*-all.zip`): skips the builder | – |
+| `--site` | an already built site (folder or `webHelp*-all.zip`), which skips the builder | – |
 | `--offline` | never download Writerside CDN assets (needs a warm cache) | off |
-| `--strict` | fail on content inspection errors | off |
+| `--strict` | fail on Writerside inspection errors | off |
+| `--set KEY=VALUE` | any config key, e.g. `--set render.page.size=Letter` (before the options) | – |
 
-Only some topics, one DOCX per topic:
+### Other commands
 
-```bash
-python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'
-```
+| Command | What it does |
+|---------|--------------|
+| `python app.py instances -p DIR` | List the instances (trees) of a project |
+| `python app.py build -p DIR -i ID` | Only run the Writerside builder; print the site folder |
+| `python app.py config show` | Print the effective configuration |
+| `python app.py config validate` | Check the configuration and the project without exporting |
+| `python app.py doctor` | Check Docker, the builder image, Chromium and Pandoc |
 
-The results go to `dist/<instance>/` (see [Output](#output)). The first run pulls the builder image (~1.7 GB)
-and builds the site, which takes a few minutes (on Apple Silicon the amd64 image runs emulated). Later runs
-reuse the build until the sources change. The Writerside folder is never modified: the builder works on a copy.
-
-**Shortcut:** put the project and instance in `config/local.yml` (see below), then just run
-`python app.py export`.
+`nxo-ws-export …` and `python -m nxo_ws_export …` are the same as `python app.py …` when the venv is active.
 
 ### From Python
 
@@ -102,114 +128,239 @@ reuse the build until the sources change. The Writerside folder is never modifie
 from nxo_ws_export import run
 
 report = run("/path/to/Writerside", "nsk", formats=["pdf", "docx"], mode="both", theme="dark")
-print(report.outputs, report.warnings)
+print(report.outputs)    # list[Path]
+print(report.warnings)   # list[str]
 ```
 
-`run()` takes the same options as the command line (`out`, `topics`, `site`, `offline`, `strict`, `env`,
-plus `settings={"render.page.size": "Letter"}` for any other key). Anything left out comes from the config
+`run()` accepts the same options as the command line (`out`, `topics`, `site`, `offline`, `strict`, `env`),
+plus `settings={"render.page.size": "Letter"}` for any other key. Anything you leave out comes from the config
 files.
 
-### Without Docker access: `--site`
+### Without Docker: `--site`
 
-If you already have the web-help output (from the Writerside IDE *Export → Web Help*, or from the
-`JetBrains/writerside-github-action` in CI), skip the builder:
+If you already have the web-help output, from the Writerside IDE (*Export → Web Help*) or from
+`JetBrains/writerside-github-action` in CI, skip the builder:
 
 ```bash
 python app.py --site webHelpNSK2-all.zip -f pdf -f docx -m both
 ```
 
-## Docker
+### Fully in Docker
 
 ```bash
-WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export export -i nsk -f pdf -t dark
+WRITERSIDE_PROJECT=/path/to/Writerside docker compose run --rm export -i nsk -f pdf -t dark
 ```
 
-The image contains the CLI, Chromium, and Pandoc. The builder runs as a *sibling* container through the
-mounted Docker socket, and both containers share the named volume `nxo-ws-export-work`. Mounting the socket
-grants root-equivalent access to the Docker daemon. If that is not acceptable, use `--site`.
+The image contains the CLI, Chromium and Pandoc. The builder runs as a *sibling* container through the
+mounted Docker socket, and both share the named volume `nxo-ws-export-work`.
+
+> [!WARNING]
+> Mounting the Docker socket gives the container root-equivalent access to the Docker daemon. If that is not
+> acceptable, build the site separately and use `--site`.
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+    P["📁 Writerside project<br/>topics/*.md · *.tree · writerside.cfg"]
+    B["🐳 writerside-builder<br/>(official, pinned, Docker)"]
+    S["🌐 Web-help site<br/>HTML · CSS · Mermaid as SVG"]
+    C["🧭 Chromium (Playwright)<br/>light or dark theme"]
+    F["Flatten<br/>tabs & collapsibles open,<br/>navigation hidden"]
+    PDF["📄 PDF<br/>print → cover, TOC,<br/>bookmarks, page numbers"]
+    DOCX["📝 DOCX<br/>see below"]
+
+    P --> B --> S --> C --> F
+    F --> PDF
+    F --> DOCX
+    S -. "--site skips the builder" .- P
+```
+
+Builds are cached by a fingerprint of the sources, the builder image and the instance
+(`builder.reuse_cache`).
+
+### The DOCX pipeline
+
+Word has no CSS, so the DOCX is not a screenshot of the page. The rendered page is translated into native Word
+structures, and the Writerside look is expressed as **named Word styles**:
+
+```mermaid
+flowchart TD
+    A["Rendered page (light theme)"] --> B["Measure the theme<br/>fonts · sizes · colours · spacing"]
+    A --> C["Rasterise figures<br/>Mermaid & SVG → sharp PNG"]
+    A --> D["Normalise HTML<br/>tables · callouts · code · links"]
+    B --> E["reference.docx<br/>Writerside look as Word styles"]
+    C --> D
+    D --> F["Pandoc<br/>HTML → DOCX"]
+    E --> F
+    F --> G["OOXML passes<br/>table layout · callout boxes · figure size ·<br/>text diagrams · TOC · chapter breaks"]
+    G --> H["📝 Editable .docx"]
+```
+
+> [!NOTE]
+> **Why not convert the Markdown directly?** Only the Writerside builder resolves includes, `%variables%`,
+> filters, snippets, XML topics and Mermaid. Converting the `.md` files would silently lose or garble that
+> content.
+
+---
 
 ## Configuration
 
-Two files are all you need:
+Two files cover everyday use:
 
 | File | In git | Purpose |
-|------|--------|---------|
-| `config/default.yml` | yes | shared settings, every key commented |
-| `config/local.yml` | no (ignored) | your settings; start from `config/local.example.yml` |
+|------|:---:|---------|
+| `config/default.yml` | ✅ | shared settings; every key is commented |
+| `config/local.yml` | ❌ ignored | your settings (start from `config/local.example.yml`) |
 
 ```bash
-cp config/local.example.yml config/local.yml   # then edit project.path / project.instance
-python app.py config show                      # the effective configuration
-python app.py config validate                  # check it (and the project) without exporting
+cp config/local.example.yml config/local.yml   # set project.path and project.instance
+python app.py export                           # now no flags are needed
 ```
 
-Precedence, lowest to highest: built-in defaults → `config/default.yml` → `config/<env>.yml` (only with
-`--env <env>`) → `config/local.yml` → environment variables `NXO_WS_EXPORT__SECTION__KEY=value` (e.g.
-`NXO_WS_EXPORT__RENDER__THEME=dark`) → CLI options and `--set render.page.size=Letter`.
+Settings are layered, and each layer overrides the one before:
 
-YAML values support `${VAR}` and `${VAR:-default}`, and unknown keys are rejected. Per-environment files are
-optional: when a CI or release pipeline needs different settings, add `config/ci.yml` and run with
-`--env ci` (or `NXO_WS_EXPORT_ENV=ci`).
+```mermaid
+flowchart LR
+    D["built-in<br/>defaults"] --> Y["config/<br/>default.yml"] --> E["config/&lt;env&gt;.yml<br/>(only with --env)"] --> L["config/<br/>local.yml"] --> V["env vars<br/>NXO_WS_EXPORT__…"] --> CLI["CLI options<br/>--set"]
+```
 
-Main keys: `project.path|instance`, `builder.image` (pinned), `render.theme`, `render.page.*`,
-`render.toc.*`, `render.cover.*`, `render.link_base_url`, `render.table_min_scale`, `render.offline`,
-`docx.reference_doc`, `docx.font`, `output.formats|mode|dir|strict`.
+- **Environment variables:** `NXO_WS_EXPORT__SECTION__KEY=value`, e.g. `NXO_WS_EXPORT__RENDER__THEME=dark`.
+- **In YAML:** values may use `${VAR}` or `${VAR:-default}`. Unknown keys are rejected, so typos fail loudly.
+- **Per-environment files are optional.** When CI or a release needs different settings, add
+  `config/ci.yml` and run with `--env ci` (or `NXO_WS_EXPORT_ENV=ci`).
+
+### Most useful keys
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `project.path` / `project.instance` | – | Writerside folder and tree id |
+| `output.formats` / `output.mode` / `output.dir` | `[pdf]` / `combined` / `./dist` | what to produce and where |
+| `render.theme` | `light` | `light` or `dark` (PDF only) |
+| `render.page.size`, `render.page.margin_*` | `A4`, 16/18/16 mm | page geometry, e.g. `Letter`, `A4 landscape` |
+| `render.toc.enabled` / `render.toc.depth` / `render.toc.title` | `true` / `3` / `Contents` | table of contents |
+| `render.cover.enabled` / `render.cover.subtitle` | `true` / – | cover page |
+| `render.table_min_scale` | `0.75` | how far wide tables may shrink before text wraps |
+| `render.link_base_url` | – | published site URL, which keeps cross-topic links clickable |
+| `docx.reference_doc` | – | your own Word template instead of the derived styles |
+| `docx.font` / `docx.code_font` | theme fonts | force fonts, e.g. `Arial` / `Consolas` |
+| `docx.image_scale` | `2` | pixel density of diagrams in Word |
+| `builder.image` | pinned | Writerside builder version (run the e2e test when bumping it) |
+
+Run `python app.py config show` to see every key with its effective value.
+
+---
 
 ## Output
 
 ```
-dist/<instance>/<instance>-<theme>.pdf        combined PDF
-dist/<instance>/pdf-<theme>/NNN-<slug>.pdf    one PDF per topic (TOC order)
-dist/<instance>/<instance>.docx               combined DOCX
-dist/<instance>/docx/NNN-<slug>.docx          one DOCX per topic
+dist/<instance>/
+├── <instance>-light.pdf          combined PDF (or -dark)
+├── pdf-light/NNN-<slug>.pdf      one PDF per topic, in TOC order
+├── <instance>.docx               combined DOCX
+└── docx/NNN-<slug>.docx          one DOCX per topic
 ```
 
-## Notes and limitations
+---
+
+## The Word document
+
+Everything in the DOCX uses a named style. If you change a style in Word, every occurrence changes with it,
+and the document stays consistent as analysts edit it.
+
+| Writerside element | Word style | Notes |
+|--------------------|------------|-------|
+| Headings | `Heading 1`–`6` | Writerside sizes and vertical rhythm |
+| Paragraphs | `Body Text`, `First Paragraph`, `Compact` | |
+| Tables | `Table` (table style) | grey grid, shaded header repeated on every page, measured column widths, wide tables scaled to fit |
+| Code blocks | `Source Code` | coloured with the site's own Prism highlighting |
+| ASCII / box-drawing diagrams | `Text Diagram` | a code block **without a language** using `┌ ─ │ └ …`: monospace, exact spacing, kept on one page. Give the block a language to keep it as code |
+| Callouts | `Callout Note` / `Tip` / `Warning` | shaded boxes like the site |
+| Tabs | `Tab Title` | every tab printed in turn, each under its title |
+| Mermaid / SVG / images | `Figure`, `Figure Bordered` | sharp light-theme PNGs, never larger than the page |
+| Links | `Hyperlink` | in-document links work; cross-topic links need `render.link_base_url` |
+| Emoji | `Emoji` | uses `docx.emoji_font` |
+
+The combined document also has a cover (`Title`, `Subtitle`, `Date`), a pre-filled clickable TOC, chapter
+breaks and "Page X of Y" footers. The DOCX is always light: Word has no dark mode.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `nxo_ws_export is not installed in this Python` | `source .venv/bin/activate` |
+| `pandoc not found on PATH` | `brew install pandoc` (DOCX only) |
+| Docker / builder errors | start Docker Desktop, then run `python app.py doctor` |
+| `project defines several instances` / `instance … not found` | `python app.py instances -p DIR`, then pass `-i <id>` |
+| `no topic matches …` | `--topic` matches the topic id, the file slug (`my-topic`) or a glob (`'db-*'`) |
+| First run is very slow | expected: image pull and an emulated build on Apple Silicon. Later runs are cached |
+| `--offline` fails | the CDN cache is cold; run once without `--offline` |
+| Word asks to *update fields* | click Yes; it only refreshes the TOC page numbers |
+| Fonts look different in Word | install *JetBrains Sans/Mono*, or set `docx.font` / `docx.code_font` |
+| Run fails on content warnings | you are in `--strict` mode; fix the Writerside inspection errors or drop `--strict` |
+
+---
+
+## Limitations
 
 - **Builder pin.** The in-browser scripts (`src/browser/assets/`) target the DOM of the pinned
   `writerside-builder` version. When you bump `builder.image`, run the e2e test.
-- **CDN assets.** The built site loads its CSS, JS, and fonts from `resources.jetbrains.com`. They are cached
-  under `render.asset_cache_dir`, so with a warm cache use `--offline` or `render.offline: true` for
-  hermetic runs.
-- **Why DOCX comes from the rendered site, not from the raw Markdown.** Only the Writerside builder resolves
-  includes, `%variables%`, filters, snippets, XML topics, and Mermaid. Converting the `.md` files directly
-  would silently lose or garble that content. The exporter takes the builder's output, flattens it, and maps
-  it onto Word styles. Word has no CSS, so the look is reproduced with styles, not copied pixel for pixel.
-- **Fonts.** The theme fonts are *JetBrains Sans* and *JetBrains Mono*. When they are missing, Word substitutes
-  `docx.font_fallback`/`docx.code_font_fallback` (Arial/Consolas). Set `docx.font`/`docx.code_font` to force a
-  font. You can also provide your own `docx.reference_doc` (a corporate template). Word may ask to update
-  fields on open; that only refreshes the TOC page numbers.
-- **Emoji** use `docx.emoji_font` (Segoe UI Emoji; Word for Mac falls back to Apple Color Emoji). LibreOffice
-  PDF export does not draw colour emoji, which is a LibreOffice limitation.
-- Cross-topic links stay clickable only when `render.link_base_url` is set. In-page anchors always work.
-- Writerside inspection errors are reported as a warning. Under `--strict` or
-  `builder.fail_on_inspection_errors` they fail the run.
+- **CDN assets.** The site loads CSS, JS and fonts from `resources.jetbrains.com`. They are cached under
+  `render.asset_cache_dir`; use `--offline` for hermetic runs.
+- **Word is not a browser.** The DOCX reproduces the look with styles; it is not a pixel copy.
+- **Emoji.** LibreOffice's PDF export does not draw colour emoji. Word for Mac falls back to Apple Color Emoji.
+- **Cross-topic links** are clickable only when `render.link_base_url` is set. In-page anchors always work.
+
+---
 
 ## Development
 
 ```bash
 source .venv/bin/activate
-pytest -q                                   # unit tests
+pytest -q                                                              # unit tests (seconds)
 WS_E2E_PROJECT=/path/to/Writerside WS_E2E_INSTANCE=nsk pytest -m e2e   # real builder + browser + pandoc
 ruff check src tests
 ```
 
-### Code layout
+### Architecture
+
+Layers depend inwards only, and `tests/test_architecture.py` enforces it:
+
+```mermaid
+flowchart TD
+    CLI["cli · app.py<br/>command line"] --> APP["app<br/>ExportService · run() · ExportReport"]
+    APP --> EXP["exporters<br/>Exporter template: session → per-topic → combined"]
+    EXP --> PDFX["pdf/<br/>printer · pages · footer · composer"]
+    EXP --> DOCXX["docx/<br/>extract · theme · styles · html · pandoc · ooxml passes"]
+    PDFX --> BR["browser<br/>Chromium session · typed in-page scripts"]
+    DOCXX --> BR
+    BR --> SRC["sources<br/>Writerside project · Docker builder · prebuilt site"]
+    SRC --> DOM["domain<br/>Site · TocNode · PageBox · units (pure, no I/O)"]
+```
 
 ```
-src/
-  domain/     pure values: Site/TocNode, PageBox, units, CSS parsing
-  sources/    where the site comes from: Writerside project, Docker builder, prebuilt dir/zip
-  browser/    Chromium session + typed wrappers for the in-page scripts (browser/assets/)
-  exporters/  Exporter template (session → per-topic → combined) and the formats:
-    pdf/        printer, cover/TOC pages, footer stamp, composer
-    docx/       extract → theme → styles (catalogue → writer → reference.docx) → html → pandoc → ooxml passes
-  app/        ExportService, ExportJob, ExportReport
+src/                       installed as the `nxo_ws_export` package
+├── domain/                pure values: Site/TocNode, ExportJob, PageBox, units, CSS parsing
+├── sources/               Writerside project, Docker builder, prebuilt dir/zip
+├── browser/               Chromium session + typed wrappers for browser/assets/*.js
+├── exporters/
+│   ├── pdf/               printer, cover/TOC pages, footer stamp, composer
+│   └── docx/              extract → theme → styles → html → pandoc → ooxml/passes
+└── app/                   ExportService, run(), ExportReport
 ```
 
-`src/` is installed as the `nxo_ws_export` package (`package-dir` in `pyproject.toml`; when adding a
-subpackage, list it under `[tool.setuptools] packages`, which a test enforces). Layers depend inwards only (`cli → app → exporters → browser → sources → domain`,
-enforced by `tests/test_architecture.py`). To add a format, implement
-`exporters.base.Exporter` and register it in `exporters/registry.py`. To change the Word look, edit
-`exporters/docx/styles/catalogue.py`. To add a DOCX fix-up, add a `DocumentPass` to
-`exporters/docx/ooxml/pipeline.py`. Design and rationale: `.github/plans/oop-refactor/design.md`.
+### Extending
+
+| I want to… | Do this |
+|------------|---------|
+| add an output format | implement `exporters.base.Exporter`, register it in `exporters/registry.py` |
+| change the Word look | edit `exporters/docx/styles/catalogue.py` (the one place styles are declared) |
+| add a DOCX fix-up | write a `DocumentPass`, add it to `exporters/docx/ooxml/pipeline.py` |
+| add a subpackage | also list it under `[tool.setuptools] packages` in `pyproject.toml` (a test checks this) |
+
+Design and rationale: [`.github/plans/oop-refactor/design.md`](.github/plans/oop-refactor/design.md) and
+[`.github/plans/bootstrap/plan.md`](.github/plans/bootstrap/plan.md).
