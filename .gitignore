@@ -8,3 +8,4 @@ __pycache__/
 dist/
 .nxo-ws-export/
 config/local.yml
+/out
