@@ -1,7 +1,7 @@
 # Personal settings: copy to config/local.yml (git-ignored) and edit. Overrides config/default.yml.
 project:
   path: /path/to/Writerside       # folder that contains writerside.cfg
-  instance: nsk                   # tree id; list them with: python -m nxo_ws_export instances
+  instance: nsk                   # tree id; list them with: python app.py instances
 
 output:
   formats: [pdf, docx]

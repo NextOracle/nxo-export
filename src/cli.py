@@ -38,14 +38,37 @@ class Ctx:
         return load_config(self.env, self.config_dir, tree)
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+class _DefaultExport(click.Group):
+    """`export` is the default command: `nxo-ws-export -p DIR -i nsk` == `nxo-ws-export export -p DIR -i nsk`."""
+
+    _GROUP_OPTS_WITH_VALUE = {"--env", "-e", "--config-dir", "--set"}
+    _GROUP_FLAGS = {"--help", "-h", "--version"}
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        i = 0
+        while i < len(args):
+            a = args[i]
+            if a in self._GROUP_OPTS_WITH_VALUE:
+                i += 2
+            elif a.split("=", 1)[0] in self._GROUP_OPTS_WITH_VALUE or a in self._GROUP_FLAGS:
+                i += 1
+            else:
+                if a not in self.commands:
+                    args = [*args[:i], "export", *args[i:]]
+                break
+        return super().parse_args(ctx, args)
+
+
+@click.group(cls=_DefaultExport, context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(__version__, prog_name="nxo-ws-export")
 @click.option("--env", "-e", help="Configuration environment (config/<env>.yml). Default: $NXO_WS_EXPORT_ENV or 'local'.")
 @click.option("--config-dir", type=click.Path(path_type=Path), help="Directory with default.yml/<env>.yml/local.yml.")
 @click.option("--set", "sets", multiple=True, metavar="KEY=VALUE", help="Override any config key, e.g. render.theme=dark.")
 @click.pass_context
 def main(ctx, env, config_dir, sets):
-    """Export a JetBrains Writerside project to PDF (light/dark) and DOCX, keeping the Writerside look."""
+    """Export a JetBrains Writerside project to PDF (light/dark) and DOCX, keeping the Writerside look.
+
+    Without a command, the options are those of `export`, e.g.: -p /path/to/Writerside -i nsk -f pdf -t dark"""
     ctx.obj = Ctx(env, config_dir, sets)
 
 

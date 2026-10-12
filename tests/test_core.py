@@ -214,3 +214,24 @@ def test_local_example_config_is_valid(tmp_path):
     (tmp_path / "local.yml").write_text((root / "local.example.yml").read_text())
     cfg, used = load_config(None, tmp_path, environ={})
     assert cfg.project.instance == "nsk" and [p.name for p in used] == ["default.yml", "local.yml"]
+
+
+# ------------------------------------------------------------------ cli
+
+
+@pytest.mark.parametrize("args", [["-p", "/nonexistent", "-i", "x"], ["--set", "render.theme=dark", "-p", "/nonexistent"]])
+def test_export_is_the_default_command(args):
+    from click.testing import CliRunner
+
+    from nxo_ws_export.cli import main
+
+    r = CliRunner().invoke(main, args)
+    assert r.exit_code == 2 and "error:" in r.output and "No such command" not in r.output
+
+
+def test_named_commands_still_route():
+    from click.testing import CliRunner
+
+    from nxo_ws_export.cli import main
+
+    assert "List the instances" in CliRunner().invoke(main, ["instances", "-h"]).output

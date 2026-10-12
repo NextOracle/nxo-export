@@ -86,7 +86,7 @@ contracts are in [`../oop-refactor/design.md`](../oop-refactor/design.md).
 with `${VAR}`/`${VAR:-default}` interpolation and `config_version: 1`. MVP ships only `default.yml`
 plus a git-ignored `local.yml` (from `local.example.yml`); `config/<env>.yml` + `--env` stays supported for
 when CI/release need their own settings. Commands: `export`, `build`, `instances`,
-`config show|validate`, `doctor`; run as `python -m nxo_ws_export` or `nxo-ws-export`.
+`config show|validate`, `doctor`; run as `python app.py` (export is the default command), `nxo-ws-export`, or `nxo_ws_export.run()` from Python.
 
 ### Output
 

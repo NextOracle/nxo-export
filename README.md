@@ -51,24 +51,24 @@ python3 -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -e '.[dev]'
 playwright install chromium
-python -m nxo_ws_export doctor       # checks Docker, the builder image, Chromium and Pandoc
+python app.py doctor                 # checks Docker, the builder image, Chromium and Pandoc
 ```
 
 ## Run an export
 
-Activate the venv in every new terminal (`source .venv/bin/activate`), then run the package with
-`python -m nxo_ws_export` (the `nxo-ws-export` command is the same thing).
+Activate the venv in every new terminal (`source .venv/bin/activate`), then run `app.py`.
 
 You do **not** pass a `.tree` file. Pass the Writerside folder (the one containing `writerside.cfg`) and
 the **instance id**, which is the id of the tree:
 
 ```bash
-# 1. Which instances (trees) does the project have?
-python -m nxo_ws_export instances -p /path/to/Writerside
-
-# 2. Export one instance
-python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f pdf -f docx -m both
+python app.py instances -p /path/to/Writerside                       # which instances (trees) exist?
+python app.py -p /path/to/Writerside -i nsk -f pdf -t dark           # combined dark PDF
+python app.py -p /path/to/Writerside -i nsk -f pdf -f docx -m both   # everything
 ```
+
+`export` is the default command, so `python app.py -p …` is the same as `python app.py export -p …`.
+With the venv active, `nxo-ws-export -p …` and `python -m nxo_ws_export -p …` work too.
 
 | Option | Values | Default |
 |--------|--------|---------|
@@ -83,11 +83,10 @@ python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f pdf -f docx -m b
 | `--offline` | never download Writerside CDN assets (needs a warm cache) | off |
 | `--strict` | fail on content inspection errors | off |
 
-More examples:
+Only some topics, one DOCX per topic:
 
 ```bash
-python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f pdf -t dark          # combined dark PDF
-python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'
+python app.py -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'
 ```
 
 The results go to `dist/<instance>/` (see [Output](#output)). The first run pulls the builder image (~1.7 GB)
@@ -95,7 +94,20 @@ and builds the site, which takes a few minutes (on Apple Silicon the amd64 image
 reuse the build until the sources change. The Writerside folder is never modified: the builder works on a copy.
 
 **Shortcut:** put the project and instance in `config/local.yml` (see below), then just run
-`python -m nxo_ws_export export`.
+`python app.py export`.
+
+### From Python
+
+```python
+from nxo_ws_export import run
+
+report = run("/path/to/Writerside", "nsk", formats=["pdf", "docx"], mode="both", theme="dark")
+print(report.outputs, report.warnings)
+```
+
+`run()` takes the same options as the command line (`out`, `topics`, `site`, `offline`, `strict`, `env`,
+plus `settings={"render.page.size": "Letter"}` for any other key). Anything left out comes from the config
+files.
 
 ### Without Docker access: `--site`
 
@@ -103,7 +115,7 @@ If you already have the web-help output (from the Writerside IDE *Export → Web
 `JetBrains/writerside-github-action` in CI), skip the builder:
 
 ```bash
-nxo-ws-export export --site webHelpNSK2-all.zip -f pdf -f docx -m both
+python app.py --site webHelpNSK2-all.zip -f pdf -f docx -m both
 ```
 
 ## Docker
@@ -127,8 +139,8 @@ Two files are all you need:
 
 ```bash
 cp config/local.example.yml config/local.yml   # then edit project.path / project.instance
-python -m nxo_ws_export config show            # the effective configuration
-python -m nxo_ws_export config validate        # check it (and the project) without exporting
+python app.py config show                      # the effective configuration
+python app.py config validate                  # check it (and the project) without exporting
 ```
 
 Precedence, lowest to highest: built-in defaults → `config/default.yml` → `config/<env>.yml` (only with
