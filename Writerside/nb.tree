@@ -4,7 +4,8 @@
 
 <instance-profile id="nb"
                  name="NXO BOOTSTRAP"
-                 start-page="starter-topic.md">
+                 start-page="nxo-export.md">
 
+    <toc-element topic="nxo-export.md"/>
     <toc-element topic="starter-topic.md"/>
 </instance-profile>
