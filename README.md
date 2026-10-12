@@ -114,7 +114,7 @@ dist/<instance>/docx/NNN-<slug>.docx          one DOCX per topic
 
 ## Notes and limitations
 
-- **Builder pin.** The in-browser scripts (`src/nxo_ws_export/assets/`) target the DOM of the pinned
+- **Builder pin.** The in-browser scripts (`src/nxo_ws_export/browser/assets/`) target the DOM of the pinned
   `writerside-builder` version. When you bump `builder.image`, run the e2e test.
 - **CDN assets.** The built site loads its CSS, JS, and fonts from `resources.jetbrains.com`. They are cached
   under `render.asset_cache_dir`, so with a warm cache use `--offline` or `render.offline: true` for
@@ -140,3 +140,22 @@ pytest -q                                   # unit tests
 WS_E2E_PROJECT=/path/to/Writerside WS_E2E_INSTANCE=nsk pytest -m e2e   # real builder + browser + pandoc
 ruff check src tests
 ```
+
+### Code layout
+
+```
+src/nxo_ws_export/
+  domain/     pure values: Site/TocNode, PageBox, units, CSS parsing
+  sources/    where the site comes from: Writerside project, Docker builder, prebuilt dir/zip
+  browser/    Chromium session + typed wrappers for the in-page scripts (browser/assets/)
+  exporters/  Exporter template (session → per-topic → combined) and the formats:
+    pdf/        printer, cover/TOC pages, footer stamp, composer
+    docx/       extract → theme → styles (catalogue → writer → reference.docx) → html → pandoc → ooxml passes
+  app/        ExportService, ExportJob, ExportReport
+```
+
+Layers depend inwards only (`cli → app → exporters → browser → sources → domain`,
+enforced by `tests/test_architecture.py`). To add a format, implement
+`exporters.base.Exporter` and register it in `exporters/registry.py`. To change the Word look, edit
+`exporters/docx/styles/catalogue.py`. To add a DOCX fix-up, add a `DocumentPass` to
+`exporters/docx/ooxml/pipeline.py`. Design and rationale: `.github/plans/oop-refactor/design.md`.

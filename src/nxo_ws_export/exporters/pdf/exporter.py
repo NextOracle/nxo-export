@@ -7,8 +7,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from ...app.job import ExportJob
 from ...browser import BrowserSession
+from ...domain.job import ExportJob
 from ..base import Exporter
 from .composer import CombinedPdfComposer, TopicPdfWriter
 from .footer import PageNumberStamper

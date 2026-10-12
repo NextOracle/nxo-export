@@ -10,9 +10,9 @@ from datetime import date
 from pathlib import Path
 
 from ..._types import Log
-from ...app.job import ExportJob
 from ...browser import BrowserSession
 from ...config import Config
+from ...domain.job import ExportJob
 from ...domain.page import PageBox
 from ...errors import ExportError
 from ..base import Exporter

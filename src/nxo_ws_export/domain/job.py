@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..domain.site import Site, TocNode
+from .site import Site, TocNode
 
 
 @dataclass(frozen=True, slots=True)

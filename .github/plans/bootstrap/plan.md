@@ -28,11 +28,11 @@ Instead: **the official builder renders → we print what it rendered.**
 | 1 | The pinned `jetbrains/writerside-builder` image produces the web-help site | 100 % fidelity: same HTML, CSS, Mermaid SVG as the published docs |
 | 2 | The builder's own PDF is **not** used | unreliable (hangs on `nsk`), no dark mode, little control |
 | 3 | Playwright **Chromium** prints each topic with `emulate_media(screen)` and `color_scheme=light|dark` | print media forces the content to light. Screen media plus a viewport equal to the printable box gives a WYSIWYG layout |
-| 4 | Flattening in the browser (`assets/flatten.js`) after Writerside's JS ran | expands `.collapse__button`; clicks every tab and clones each panel under its title |
+| 4 | Flattening in the browser (`browser/assets/flatten.js`) after Writerside's JS ran | expands `.collapse__button`; clicks every tab and clones each panel under its title |
 | 5 | Mermaid needs no `mmdc`: the builder ships rendered SVG that Writerside themes for dark mode | fewer moving parts, exact look |
 | 6 | `@page { background: <html bg> }` and our own footer stamped via pypdf overlay | Chromium paints margins with the canvas colour; Writerside's `@page` footer can't do continuous numbering across merged topics |
 | 7 | Combined PDF = cover + TOC (Writerside classes, two-pass page numbers) + topics, with hierarchical bookmarks from `HelpTOC.json` | TOC "transformed" from the tree, not from headings |
-| 8 | DOCX = **builder-rendered** light DOM → normalised HTML → **Pandoc** → **OOXML post-processing** (`render/docx/`). Not raw Markdown | only the builder resolves includes, `%vars%`, filters, snippets, XML topics, and Mermaid. Pandoc gives real Word structures; post-processing adds what Pandoc can't express |
+| 8 | DOCX = **builder-rendered** light DOM → normalised HTML → **Pandoc** → **OOXML post-processing** (`exporters/docx/`). Not raw Markdown | only the builder resolves includes, `%vars%`, filters, snippets, XML topics, and Mermaid. Pandoc gives real Word structures; post-processing adds what Pandoc can't express |
 | 8a | Word styles generated from **computed styles** of the rendered theme (`docx_theme.js` → `Theme` → `reference.docx`): headings, body rhythm, `Table`, `Source Code`, `Callout *`, `Tab Title`, `Figure`, `Emoji`, TOC levels, footer | BAs edit with named styles, so the Writerside look survives editing. Nothing is hand-copied CSS |
 | 8b | Tables: colgroup widths measured in the browser → Word grid in twips; borders, header shading, repeating header, cantSplit, wide-table font scaling | Pandoc alone emits borderless, equal-width tables |
 | 8c | Callouts = one-cell shaded tables; code re-highlighted by Pandoc with a skylighting theme built from the **site's Prism colours** | Pandoc drops custom styles on lists inside divs; colours stay identical to the site |
@@ -59,27 +59,26 @@ Instead: **the official builder renders → we print what it rendered.**
 ## 4. Architecture
 
 ```
-cli.py ─► config.py (layered YAML/env/CLI) ─► exporter.export()
+cli.py ─► config.py (layered YAML/env/CLI) ─► app/service.ExportService.run(provider, topics)
                                                  │
-            project.py (writerside.cfg, *.tree, orphan trees)
+            sources/provider: PrebuiltSite | WritersideBuild
+                 sources/project.py (writerside.cfg, *.tree, orphan trees)
+                 sources/builder.py ── docker run writerside-builder ──► <work>/<inst>-<fp>/site  (cached)
+                 sources/site_loader.py (HelpTOC.json → domain.Site, local HTTP server)
                                                  │
-            builder.py ── docker run writerside-builder ──► <work>/<inst>-<fp>/site  (cached)
-                                                 │                │ report.json → warnings/errors
-            site.py (HelpTOC.json → topic tree, local HTTP server)
+            ExportJob ─► exporters/registry FORMATS[fmt].export(job)   (Exporter template: session → per-topic → combined)
                                                  │
-            render/browser.py  Session: Chromium + CDN AssetCache route + open_topic()
-                                   flatten.js → print.css → fit.js
+            browser/session.py  BrowserSession: Chromium + CDN AssetCache route + open_topic()
+                                   scripts.py: Flatten → PrintCss → FitForPrint
                      ┌───────────────────────────┴──────────────────────────┐
-            render/pdf.py                                         render/docx/
-            per-topic page.pdf, @page css, footer stamp,          extract (freeze, SVG→PNG, docx_prepare.js) →
-            cover/TOC (two pass), bookmarks, merge                theme → reference → links → pandoc →
-                                                                  postprocess (tables, callouts, figures, TOC)
+            exporters/pdf/                                        exporters/docx/
+            printer (page.pdf, @page css), footer stamp,          extract (SVG→PNG, prepare) → theme →
+            pages (cover/TOC), composer (TOC convergence,         styles (catalogue → writer → reference.docx) →
+            outline, merge)                                       html (links, ids) → pandoc → ooxml passes
 ```
 
-Modules: `config`, `project`, `builder`, `site`, `geometry` (page box in CSS px), `exporter` (orchestration,
-topic filter and subset TOC, heading shift for the combined DOCX), `render/{browser,pdf,docx}`, and
-`assets/{flatten.js,print.css,fit.js,docx_theme.js,docx_figures.js,docx_prepare.js}`.
-`render/docx/` = `extract`, `theme`, `reference`, `links`, `ooxml`, `postprocess`.
+Layers: `domain` (pure values) ← `sources` ← `browser` ← `exporters` ← `app` ← `cli` (enforced by a test). Full layout and the
+contracts are in [`../oop-refactor/design.md`](../oop-refactor/design.md).
 
 ### Configuration
 
@@ -114,7 +113,7 @@ artifacts, fresh build), `prod` (release, `link_base_url`). Commands: `export`, 
 
 | Risk | Mitigation |
 |---|---|
-| Builder DOM/CSS changes on upgrade | image pinned; selectors isolated in `assets/`; e2e test on a real project before bumping |
+| Builder DOM/CSS changes on upgrade | image pinned; selectors isolated in `browser/assets/`; e2e test on a real project before bumping |
 | amd64 emulation on Apple Silicon is slow (~2 min build) | fingerprint cache, `--site` |
 | Docker socket = root on host | documented; `--site` path needs no socket |
 | CDN unavailable | asset cache + `render.offline` |

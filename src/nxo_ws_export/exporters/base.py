@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import ClassVar, Generic, TypeVar
 
 from .._types import Log
-from ..app.job import ExportJob
 from ..config import Config
+from ..domain.job import ExportJob
 
 S = TypeVar("S")
 

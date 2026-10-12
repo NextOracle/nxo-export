@@ -1,6 +1,8 @@
 # OOP refactor of the PDF and DOCX pipelines: design
 
-Status: **proposed**. This refactor must not change behaviour: same CLI, same config, same output.
+Status: **implemented**. This refactor must not change behaviour: same CLI, same config, same output. The golden
+snapshots (PDF light/dark, DOCX, per-topic and combined) were byte-identical before and after. The only
+intentional output change came afterwards, in its own commit: figures no longer leak temp paths in `pic:cNvPr/@descr`.
 
 ## 1. Problems today
 
@@ -32,71 +34,81 @@ Status: **proposed**. This refactor must not change behaviour: same CLI, same co
    (`Flatten`, `FitForPrint`, `ReadTheme`, `MarkFigures`, `PrepareForDocx`).
 7. **Dependencies point inward:** `cli → app → exporters → (browser, tools) → domain`. The domain imports nothing.
 
-## 3. Package layout
+## 3. Package layout (as implemented)
 
 ```
 nxo_ws_export/
-├── __init__.py                 public API: export(), Config, ExportReport, __version__
-├── cli.py                      click (thin)
-├── config.py                   Pydantic models + layered loader (unchanged)
-├── errors.py                   NxoError ▸ ConfigError, ProjectError, BuildError, RenderError ▸ PdfError, DocxError
+├── __init__.py                 public API (lazy): export, Config, load_config, ExportReport, __version__
+├── cli.py                      click (thin); catches NxoError
+├── config.py                   Pydantic models + layered loader
+├── errors.py                   NxoError ▸ Config/Project/Build/Site/ExportError, RenderError ▸ PdfError, DocxError
+├── _types.py                   Log
 ├── domain/                     pure, no I/O
-│   ├── site.py                 Site, TocNode (+ subset/filter as methods)
-│   ├── units.py                Px, Twips, HalfPt, Emu (NewType + converters)
-│   ├── color.py                Color value object (css parse, blend, hex)
-│   └── page.py                 PageBox (size, margins → content box in px/twips)
-├── sources/                    where the site comes from
-│   ├── project.py              WritersideProject, Instance
-│   ├── builder.py              DockerSiteBuilder (SiteBuilder port), BuildResult, fingerprint cache
-│   └── site_loader.py          SiteLoader (dir | zip → Site), LocalSiteServer
+│   ├── site.py                 Site, TocNode (frozen; topics(), select(), subset(), outline())
+│   ├── job.py                  ExportJob (frozen): what to export, where, in which layout
+│   ├── units.py                Px, Twips, HalfPoints, Emu (NewType + converters)
+│   ├── css.py                  css colour parsing, blend, first_font, css_px
+│   └── page.py                 PageBox (content box in px / twips, landscape)
+├── sources/                    where the site comes from (Strategy: SiteProvider)
+│   ├── provider.py             SiteProvider, PrebuiltSite, WritersideBuild → AcquiredSite
+│   ├── project.py              Writerside project, instances, orphan trees
+│   ├── builder.py              DockerSiteBuilder, BuildResult, fingerprint cache
+│   └── site_loader.py          load_site, site_root (dir | zip), SiteServer
 ├── browser/
-│   ├── session.py              BrowserSession (context manager), AssetCache
-│   ├── scripts.py              BrowserScript[Opts, Result] + Flatten, FitForPrint, ReadTheme, MarkFigures, PrepareForDocx
-│   └── assets/                 *.js, print.css (moved, unchanged)
+│   ├── session.py              BrowserSession (context manager)
+│   ├── cdn_cache.py            AssetCache (offline CDN route)
+│   ├── scripts.py              typed wrappers: Flatten, FitForPrint, ReadTheme, MarkFigures, PrepareForDocx, PrintCss
+│   └── assets/                 *.js, print.css + read_asset()
 ├── app/
-│   ├── job.py                  ExportJob (site, selection, title, out_dir, mode) – frozen
 │   ├── service.py              ExportService: acquire site → select topics → run exporters → ExportReport
-│   └── report.py               ExportReport, warnings
+│   └── report.py               ExportReport
 └── exporters/
-    ├── base.py                 Exporter ABC: export(job) -> list[Path]  (template: prepare → per-topic → combined)
+    ├── base.py                 Exporter[S] ABC, template export(job): session → per-topic → combined
     ├── registry.py             FORMATS = {"pdf": PdfExporter, "docx": DocxExporter}
     ├── pdf/
-    │   ├── exporter.py         PdfExporter(Exporter)
-    │   ├── renderer.py         TopicPdfRenderer → TopicPdf
-    │   ├── pages.py            CoverPage, TocPage (two-pass page numbers)
+    │   ├── exporter.py         PdfExporter
+    │   ├── printer.py          PagePrinter → TopicPdf (Chromium page.pdf, @page css)
+    │   ├── pages.py            CoverPage, TocPage
     │   ├── footer.py           PageNumberStamper
-    │   └── composer.py         CombinedPdfComposer (merge, outline/bookmarks, viewer prefs)
+    │   └── composer.py         TopicPdfWriter, CombinedPdfComposer (TOC page numbers converge, outline)
     └── docx/
-        ├── exporter.py         DocxExporter(Exporter)
-        ├── extract.py          TopicExtractor → TopicHtml (freeze, rasterise figures, prepare)
-        ├── theme/
-        │   ├── model.py        Theme, TextStyle, CalloutStyle (from tokens)
-        │   ├── tokens.py       TokenAccumulator (merge across topics)
-        │   └── highlight.py    HighlightTheme (Prism → skylighting JSON)
+        ├── exporter.py         DocxExporter (injectable HtmlToDocx + PostProcessor)
+        ├── topic.py            TopicHtml (frozen)
+        ├── extract.py          TopicExtractor (theme tokens, figure rasterising, prepare)
+        ├── pandoc.py           HtmlToDocx port, PandocConverter (version probe, legacy flags)
+        ├── theme/              model (Theme, Text, Callout), tokens (ThemeTokens), highlight, rhythm (GAP)
         ├── styles/
-        │   ├── specs.py        ParagraphStyleSpec, CharStyleSpec, TableStyleSpec
-        │   ├── catalogue.py    WritersideStyleCatalogue(theme, cfg) → list[StyleSpec]   (the one place styles are defined)
-        │   └── reference.py    ReferenceDocBuilder (applies specs, footer, page setup, font fallbacks)
+        │   ├── specs.py        ParagraphStyle, CharacterStyle, TableStyle (frozen value objects)
+        │   ├── catalogue.py    WritersideStyleCatalogue → list[StyleSpec]  (the one place styles are defined)
+        │   ├── writer.py       StyleWriter (the only code that writes style XML)
+        │   └── reference.py    ReferenceDocBuilder (defaults, catalogue, footer, page setup, font fallbacks)
         ├── html/
-        │   ├── assembler.py    HtmlAssembler: topic / combined HTML, heading shift, short ids
+        │   ├── assembler.py    HtmlAssembler (topic / combined), shift_headings, short_ids
         │   └── links.py        LinkResolver
-        ├── pandoc.py           PandocConverter (HtmlToDocx port; version probe, legacy flags)
         └── ooxml/
-            ├── xml.py          OOXML helpers (put, child, borders, shade, …)
-            ├── context.py      PassContext (theme, page box, table scales, stats: Counter)
-            ├── pipeline.py     PostProcessor(passes).run(path, ctx)
-            └── passes/
-                ├── base.py     DocumentPass protocol: name, applies(ctx), run(doc, ctx)
-                ├── tables.py   DataTablePass
-                ├── callouts.py CalloutPass
-                ├── figures.py  FigurePass
-                ├── text_diagrams.py TextDiagramPass
-                ├── lists.py    ListSpacingPass
-                ├── bookmarks.py BookmarkPass
-                ├── chapters.py ChapterBreakPass (combined only)
-                ├── toc.py      TocPass
-                └── properties.py CorePropertiesPass
+            ├── xml.py          OOXML helpers
+            ├── context.py      PassContext (frozen)
+            ├── pipeline.py     PostProcessor(passes).run(path, ctx) → Counter
+            └── passes/         base (DocumentPass, containers, content_width), tables (TableLayoutPass →
+                                DataTableFormatter / CalloutFormatter), figures, text_diagrams, lists,
+                                bookmarks, chapters (combined only), toc, properties
 ```
+
+### Deviations from the proposal
+
+- Data tables and callouts are both Word tables and nest inside each other, so one `TableLayoutPass` walks
+  them recursively and dispatches to `DataTableFormatter` or `CalloutFormatter` (Strategy). Two separate
+  passes would have had to share that walk.
+- `domain/color.py` became `domain/css.py` (functions, not a Color class: values stay hex strings end-to-end).
+- `renderer.py` became `printer.py`; `AssetCache` lives in `browser/cdn_cache.py`; site acquisition is a
+  `SiteProvider` strategy in `sources/provider.py`.
+- `GAP` (vertical rhythm) lives in `theme/rhythm.py`, so `styles` and `ooxml` both depend on `theme` and not
+  on each other.
+- `styles/writer.py` split out of `reference.py`: the catalogue declares, the writer applies, the builder
+  packages.
+- `ExportJob` lives in `domain/job.py` (not `app/`), so exporters never import the app layer.
+  `tests/test_architecture.py` enforces inward-only imports.
+- mypy is not adopted (no new dev dependencies); ruff keeps `E,F,W,I,B,UP,PLW1510`.
 
 ## 4. Key contracts
 

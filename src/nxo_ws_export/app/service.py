@@ -8,9 +8,9 @@ from pathlib import Path
 
 from .._types import Log
 from ..config import Config
+from ..domain.job import ExportJob
 from ..errors import ExportError
 from ..sources.provider import PrebuiltSite, SiteProvider, WritersideBuild
-from .job import ExportJob
 from .report import ExportReport
 
 
