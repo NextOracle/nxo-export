@@ -25,7 +25,7 @@ INSTANCE = os.environ.get("WS_E2E_INSTANCE")
 @pytest.mark.skipif(not PROJECT, reason="WS_E2E_PROJECT not set")
 @pytest.mark.parametrize("theme", ["light", "dark"])
 def test_export_real_project(tmp_path: Path, theme: str):
-    args = ["--env", "dev", "export", "-p", PROJECT, "-f", "pdf", "-t", theme, "-m", "both", "-o", str(tmp_path)]
+    args = ["export", "-p", PROJECT, "-f", "pdf", "-t", theme, "-m", "both", "-o", str(tmp_path)]
     if theme == "light":
         args += ["-f", "docx"]
     if INSTANCE:

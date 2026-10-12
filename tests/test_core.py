@@ -69,9 +69,8 @@ def test_config_errors(tmp_path):
 
 def test_repo_config_files_are_valid():
     root = Path(__file__).resolve().parents[1] / "config"
-    for env in ("local", "dev", "ci", "prod"):
-        cfg, _ = load_config(env, root, environ={})
-        assert cfg.env == env
+    cfg, _ = load_config(None, root, environ={})
+    assert cfg.env == "local"
 
 
 # ------------------------------------------------------------------ project
@@ -207,3 +206,11 @@ def test_css_color_to_hex(css, expected):
 def test_first_font():
     assert first_font('"JetBrains Sans", Inter, system-ui') == "JetBrains Sans"
     assert first_font("system-ui, -apple-system, sans-serif") is None
+
+
+def test_local_example_config_is_valid(tmp_path):
+    root = Path(__file__).resolve().parents[1] / "config"
+    (tmp_path / "default.yml").write_text((root / "default.yml").read_text())
+    (tmp_path / "local.yml").write_text((root / "local.example.yml").read_text())
+    cfg, used = load_config(None, tmp_path, environ={})
+    assert cfg.project.instance == "nsk" and [p.name for p in used] == ["default.yml", "local.yml"]

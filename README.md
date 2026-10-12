@@ -40,25 +40,62 @@ What you get:
   - A pre-filled, clickable TOC, "Page X of Y" footers, and working in-document and cross-topic links.
   - DOCX is always light. Dark mode is ignored for DOCX, with a warning.
 
-## Quick start (local)
+## Setup (once)
 
-Requirements: Python ≥ 3.11, Docker (for the builder), and Pandoc ≥ 3 (for DOCX only).
+Requirements: Python ≥ 3.11, Docker (runs the Writerside builder), and Pandoc ≥ 3 (DOCX only;
+`brew install pandoc`).
 
 ```bash
-python -m venv .venv && . .venv/bin/activate
+cd nxo-ws-export
+python3 -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -e '.[dev]'
 playwright install chromium
-nxo-ws-export doctor
-
-nxo-ws-export instances -p /path/to/Writerside
-nxo-ws-export export -p /path/to/Writerside -i nsk -f pdf -t dark            # combined dark PDF
-nxo-ws-export export -p /path/to/Writerside -i nsk -f pdf -f docx -m both    # everything
-nxo-ws-export export -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'
+python -m nxo_ws_export doctor       # checks Docker, the builder image, Chromium and Pandoc
 ```
 
-The project directory is never modified. The builder works on a copy, and builds are cached by a fingerprint
-of the sources, the builder image, and the instance (`builder.reuse_cache`). The first build pulls the builder
-image (~1.7 GB). On Apple Silicon it runs emulated (amd64), which is slower but works.
+## Run an export
+
+Activate the venv in every new terminal (`source .venv/bin/activate`), then run the package with
+`python -m nxo_ws_export` (the `nxo-ws-export` command is the same thing).
+
+You do **not** pass a `.tree` file. Pass the Writerside folder (the one containing `writerside.cfg`) and
+the **instance id**, which is the id of the tree:
+
+```bash
+# 1. Which instances (trees) does the project have?
+python -m nxo_ws_export instances -p /path/to/Writerside
+
+# 2. Export one instance
+python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f pdf -f docx -m both
+```
+
+| Option | Values | Default |
+|--------|--------|---------|
+| `-p, --project` | Writerside folder (with `writerside.cfg`) | `project.path` |
+| `-i, --instance` | instance (tree) id | `project.instance` |
+| `-f, --format` | `pdf`, `docx` (repeatable) | `pdf` |
+| `-m, --mode` | `combined`, `per-topic`, `both` | `combined` |
+| `-t, --theme` | `light`, `dark` (PDF only) | `light` |
+| `--topic` | topic id, file slug or glob (repeatable) | all topics |
+| `-o, --out` | output folder | `dist/` |
+| `--site` | an already built site (folder or `webHelp*-all.zip`): skips the builder | – |
+| `--offline` | never download Writerside CDN assets (needs a warm cache) | off |
+| `--strict` | fail on content inspection errors | off |
+
+More examples:
+
+```bash
+python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f pdf -t dark          # combined dark PDF
+python -m nxo_ws_export export -p /path/to/Writerside -i nsk -f docx -m per-topic --topic 'database-*'
+```
+
+The results go to `dist/<instance>/` (see [Output](#output)). The first run pulls the builder image (~1.7 GB)
+and builds the site, which takes a few minutes (on Apple Silicon the amd64 image runs emulated). Later runs
+reuse the build until the sources change. The Writerside folder is never modified: the builder works on a copy.
+
+**Shortcut:** put the project and instance in `config/local.yml` (see below), then just run
+`python -m nxo_ws_export export`.
 
 ### Without Docker access: `--site`
 
@@ -79,29 +116,32 @@ The image contains the CLI, Chromium, and Pandoc. The builder runs as a *sibling
 mounted Docker socket, and both containers share the named volume `nxo-ws-export-work`. Mounting the socket
 grants root-equivalent access to the Docker daemon. If that is not acceptable, use `--site`.
 
-## Configuration (YAML per environment)
+## Configuration
 
-Layers, lowest to highest precedence:
+Two files are all you need:
 
-1. built-in defaults
-2. `config/default.yml`
-3. `config/<env>.yml`. The env comes from `--env` or `$NXO_WS_EXPORT_ENV` (default `local`). A missing
-   file for any env other than `local` is an error.
-4. `config/local.yml`: personal and git-ignored.
-5. environment variables `NXO_WS_EXPORT__SECTION__KEY=value`, e.g. `NXO_WS_EXPORT__RENDER__THEME=dark`
-6. CLI options and `--set render.page.size=Letter`
+| File | In git | Purpose |
+|------|--------|---------|
+| `config/default.yml` | yes | shared settings, every key commented |
+| `config/local.yml` | no (ignored) | your settings; start from `config/local.example.yml` |
 
-YAML values support `${VAR}` and `${VAR:-default}`. Unknown keys are rejected. Inspect the result with
-`nxo-ws-export --env ci config show` or `config validate`.
+```bash
+cp config/local.example.yml config/local.yml   # then edit project.path / project.instance
+python -m nxo_ws_export config show            # the effective configuration
+python -m nxo_ws_export config validate        # check it (and the project) without exporting
+```
 
-| env | purpose |
-|-----|---------|
-| `dev`  | cached builds, combined PDF |
-| `ci`   | fresh build, PDF+DOCX, combined + per topic, `strict` (inspection errors fail) |
-| `prod` | fresh build, all artifacts, cross-topic links point to `${DOCS_BASE_URL}` |
+Precedence, lowest to highest: built-in defaults → `config/default.yml` → `config/<env>.yml` (only with
+`--env <env>`) → `config/local.yml` → environment variables `NXO_WS_EXPORT__SECTION__KEY=value` (e.g.
+`NXO_WS_EXPORT__RENDER__THEME=dark`) → CLI options and `--set render.page.size=Letter`.
 
-Main keys: `builder.image` (pinned), `render.theme`, `render.page.*`, `render.toc.*`, `render.cover.*`,
-`render.link_base_url`, `render.table_min_scale`, `render.offline`, `docx.reference_doc`, `docx.font`, `output.formats|mode|dir|strict`.
+YAML values support `${VAR}` and `${VAR:-default}`, and unknown keys are rejected. Per-environment files are
+optional: when a CI or release pipeline needs different settings, add `config/ci.yml` and run with
+`--env ci` (or `NXO_WS_EXPORT_ENV=ci`).
+
+Main keys: `project.path|instance`, `builder.image` (pinned), `render.theme`, `render.page.*`,
+`render.toc.*`, `render.cover.*`, `render.link_base_url`, `render.table_min_scale`, `render.offline`,
+`docx.reference_doc`, `docx.font`, `output.formats|mode|dir|strict`.
 
 ## Output
 
@@ -136,6 +176,7 @@ dist/<instance>/docx/NNN-<slug>.docx          one DOCX per topic
 ## Development
 
 ```bash
+source .venv/bin/activate
 pytest -q                                   # unit tests
 WS_E2E_PROJECT=/path/to/Writerside WS_E2E_INSTANCE=nsk pytest -m e2e   # real builder + browser + pandoc
 ruff check src tests
