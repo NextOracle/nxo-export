@@ -2,6 +2,8 @@
 
 *How nxo-export reuses the official Writerside renderer, a headless browser and Pandoc to produce documents that keep the published look, and why translating to native Word styles beats taking a screenshot.*
 
+**Source code:** [github.com/NextOracle/nxo-export](https://github.com/NextOracle/nxo-export). Open source, Python 3.11+.
+
 ---
 
 ## Abstract
@@ -117,7 +119,7 @@ A few design choices are worth stating explicitly:
 - **Enforced boundaries.** The dependency rule [13] is not left to convention: an architecture test inspects the imports and fails the build on a violation.
 - **Typed configuration.** Settings are validated with Pydantic [14]. Layers are applied in a fixed order: built-in defaults, a shared YAML file, an optional per-environment file, a local file, environment variables, and finally command-line options. Unknown keys are rejected, so a typo fails loudly instead of being silently ignored.
 
-The tool is used from the command line (built with Click [15]), from Python through a single `run()` function, or entirely inside Docker [16]. The Docker image is based on Microsoft's Playwright image and contains Chromium and Pandoc.
+The tool is used from the command line (built with Click [15]), from Python through a single `run()` function, or entirely inside Docker [16]. The Docker image is based on Microsoft's Playwright image and contains Chromium and Pandoc. Installation and full usage instructions are in the [project README](https://github.com/NextOracle/nxo-export#quick-start) [19].
 
 ```bash
 # Combined light PDF and an editable DOCX, plus one file per topic
@@ -167,6 +169,8 @@ Natural next steps are round-tripping reviewed Word content back to Markdown, ex
 
 nxo-export shows that rich documentation does not have to be confined to the web, and that keeping it portable does not require a second renderer. Delegating rendering to the official Writerside builder and printing with a real browser keeps the PDF faithful by construction. Translating the rendered page into named Word styles, rather than images, gives business stakeholders a document they can genuinely work with. Engineers keep the benefits of docs-as-code, and everyone else gets the same content in the format they need, from one source of truth.
 
+nxo-export is open source. Try it, open an issue or contribute on [GitHub](https://github.com/NextOracle/nxo-export). Feedback and stars are welcome.
+
 ---
 
 ## Acknowledgements
@@ -212,3 +216,5 @@ nxo-export stands on the work of others. It relies on **JetBrains Writerside** a
 [17] pytest contributors, "pytest." https://docs.pytest.org/
 
 [18] Astral, "Ruff." https://docs.astral.sh/ruff/
+
+[19] NextOracle, "nxo-export source repository." https://github.com/NextOracle/nxo-export
