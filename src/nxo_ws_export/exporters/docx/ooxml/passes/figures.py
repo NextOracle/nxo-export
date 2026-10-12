@@ -43,6 +43,7 @@ class FigurePass(DocumentPass):
         max_emu = avail * EMU_PER_TWIP
         bordered = ox.pstyle(p) == "FigureBordered"
         for d in drawings:
+            _alt_text_only(d)
             ext = d.find(f".//{{{_WP}}}extent")
             if ext is None:
                 continue
@@ -68,3 +69,12 @@ def _border(drawing) -> None:
         fill.append(fill.makeelement(f"{{{_A}}}srgbClr", {"val": SCREENSHOT_BORDER}))
         ln.append(fill)
         sppr.append(ln)
+
+
+def _alt_text_only(drawing) -> None:
+    """Pandoc stores the image source path in pic:cNvPr/@descr: on our figures a local temp path. Use the alt text
+    (wp:docPr/@descr) instead, so documents leak no paths and screen readers read the same description."""
+    doc_pr = drawing.find(f".//{{{_WP}}}docPr")
+    alt = doc_pr.get("descr", "") if doc_pr is not None else ""
+    for c in drawing.iter(f"{{{_PIC}}}cNvPr"):
+        c.set("descr", alt)
